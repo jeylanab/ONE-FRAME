@@ -9,7 +9,6 @@ export default function Home() {
       {/* HERO */}
       <section className="min-h-screen flex items-center justify-center px-6">
         <div className="max-w-7xl w-full grid md:grid-cols-2 gap-16 items-center">
-
           <motion.div
             initial={{ opacity: 0, x: -40 }}
             animate={{ opacity: 1, x: 0 }}
