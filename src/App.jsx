@@ -96,7 +96,7 @@ export default function App() {
     </AuthProvider>
   );
 }
-// function wrapper
+// function wrapper for the footer to conditionally render based on route
 function FooterWrapper() {
   const location = useLocation();
   const isAdminPath = location.pathname.startsWith('/admin');
