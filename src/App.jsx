@@ -7,14 +7,14 @@ import Navbar from "./components/Navbar";
 import Home from "./components/Home";
 import Quote from "./components/Quote";
 import Footer from "./components/Footer";
-import Features from "./components/Features"; // Newly created
+import Features from "./components/Features";
+import Contact from "./components/Contact"; // New Import
 
 // Pages
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import AdminLayout from "./admin/AdminLayout";
 
-// Scroll to Top Utility
 function ScrollToTop() {
   const { pathname } = useLocation();
   useEffect(() => {
@@ -23,7 +23,6 @@ function ScrollToTop() {
   return null;
 }
 
-// Protected Route Logic
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
   if (loading) return (
@@ -35,7 +34,6 @@ function ProtectedRoute({ children }) {
   return children;
 }
 
-// Admin Route Logic
 function AdminRoute({ children }) {
   const { user, loading } = useAuth();
   if (loading) return (
@@ -52,25 +50,25 @@ export default function App() {
     <AuthProvider>
       <div className="min-h-screen flex flex-col font-sans selection:bg-[#0D004C] selection:text-white">
         <ScrollToTop />
-        
-        {/* Conditional Navbar: We hide it or use a specific one for Admin if needed */}
         <Navbar />
 
         <main className="flex-1">
           <Routes>
-            {/* Public Routes */}
+            {/* Primary Landing Page Flow */}
             <Route path="/" element={
               <>
                 <Home />
                 <Features />
+                <Contact /> {/* Contact added here for a seamless scroll experience */}
               </>
             } />
             
+            {/* Direct Access Routes */}
             <Route path="/features" element={<Features />} />
+            <Route path="/contact" element={<Contact />} /> 
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
 
-            {/* User Protected Routes */}
             <Route
               path="/quote"
               element={
@@ -80,7 +78,6 @@ export default function App() {
               }
             />
 
-            {/* Admin Protected Routes */}
             <Route
               path="/admin/*"
               element={
@@ -90,19 +87,16 @@ export default function App() {
               }
             />
 
-            {/* Catch-all Redirect */}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </main>
 
-        {/* Footer visibility: Hide on Admin pages to keep the dashboard clean */}
         <FooterWrapper />
       </div>
     </AuthProvider>
   );
 }
 
-// Helper to hide footer on admin routes
 function FooterWrapper() {
   const location = useLocation();
   const isAdminPath = location.pathname.startsWith('/admin');
