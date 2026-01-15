@@ -1,80 +1,118 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { collection, getDocs } from "firebase/firestore";
+import { db } from "../firebase/firebase";
 
-export default function StepFrame({ quote, setQuote, onNext }) {
-  const FRAMES = [
-    { code: "OF895", size: "15mm", type: "WALL", description: "14.5mm x 20mm profile", weightPerLM: 0.277, sellPerLM: 495 },
-    { code: "OF408", size: "28mm", type: "WALL", description: "28mm x 40mm profile", weightPerLM: 0.676, sellPerLM: 650 },
-    { code: "OF517", size: "50mm", type: "WALL", description: "50mm x 40mm profile", weightPerLM: 0.81, sellPerLM: 750 },
-    { code: "OF418", size: "80mm", type: "WALL", description: "80mm x 40mm profile", weightPerLM: 1.335, sellPerLM: 1050 },
-    { code: "OF101", size: "120mm", type: "FREE-STANDING", description: "120mm x 40mm profile", weightPerLM: 1.761, sellPerLM: 1200 },
-    { code: "OF886", size: "140mm", type: "CEILING", description: "140mm x 14.6mm profile", weightPerLM: 2.079, sellPerLM: 0 },
-    { code: "OF032", size: "32mm x 32mm", type: "3D", description: "31.75mm diamater x 1.42mm wall tube", weightPerLM: 0.367, sellPerLM: 0 },
-    { code: "OF050", size: "50mm x 50mm", type: "3D", description: "50mm diamater x 2mm wall tube", weightPerLM: 0.817, sellPerLM: 0 },
-    { code: "OF546", size: "32mm x 45mm", type: "3D", description: "32mm x 44.5mm SEG tube", weightPerLM: 0.446, sellPerLM: 0 },
-    { code: "OF087", size: "18mm x 18mm", type: "3D", description: "18mm x 18mm profile", weightPerLM: 0.399, sellPerLM: 0 },
-    { code: "OF366", size: "40mm x 40mm", type: "3D", description: "40mm x 40mm profile", weightPerLM: 1.62, sellPerLM: 0 },
-    { code: "OF566", size: "60mm x 60mm", type: "3D", description: "60mm x 60mm profile", weightPerLM: 2.1, sellPerLM: 0 },
-    { code: "OF136", size: "80mm x 80mm", type: "3D", description: "80mm x 80mm profile", weightPerLM: 2.69, sellPerLM: 0 },
-    { code: "OF021", size: "25mm x 16mm", type: "RAIL", description: "25mm x 16mm profile", weightPerLM: 0.39, sellPerLM: 0 },
-    { code: "OF004", size: "40mm x 16mm", type: "RAIL", description: "40mm x 16mm profile", weightPerLM: 0.662, sellPerLM: 0 },
-    { code: "OF303", size: "32mm x 32mm", type: "POST", description: "32mm x 32mm profile", weightPerLM: 0.79, sellPerLM: 0 },
-    { code: "OF105", size: "30mm x 30mm", type: "POST", description: "30mm x 30mm profile", weightPerLM: 0.725, sellPerLM: 0 },
-    { code: "OF617", size: "7mm x 32mm", type: "RETRO", description: "7mm x 32mm profile", weightPerLM: 0.218, sellPerLM: 0 },
-    { code: "OF465", size: "16mm x 8mm", type: "RETRO", description: "16mm x 8mm profile", weightPerLM: 0.301, sellPerLM: 0 },
-    { code: "OF545", size: "15mm x 45mm", type: "ILLUMINATE", description: "15mm x 45mm profile + lens", weightPerLM: 0, sellPerLM: 0 },
-    { code: "OF646", size: "40mm x 26mm", type: "ILLUMINATE", description: "40mm x 26mm profile + lens", weightPerLM: 0.501, sellPerLM: 0 },
-    { code: "OF083", size: "80mm x 80mm", type: "ILLUMINATE", description: "80mm x 80mm profile + lens", weightPerLM: 2.691, sellPerLM: 0 },
-  ];
+export default function StepFrame({ quote, updateQuote, onNext, onBack }) {
+  const [data, setData] = useState({ frames: [], corners: [] });
+  const [loading, setLoading] = useState(true);
 
-  const [selectedCode, setSelectedCode] = useState(quote?.frame?.code || "");
+  useEffect(() => {
+    const fetchFrameData = async () => {
+      const frameSnap = await getDocs(collection(db, "frame"));
+      const cornerSnap = await getDocs(collection(db, "corners"));
+      
+      setData({
+        frames: frameSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })),
+        corners: cornerSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+      });
+      setLoading(false);
+    };
+    fetchFrameData();
+  }, []);
 
-  const handleSelect = (frame) => {
-    setSelectedCode(frame.code);
-    setQuote({
-      ...quote,
-      frame: frame,
-    });
+  const handleFrameSelect = (frame) => {
+    // Calculate weight for the frame component: LM * Weight/LM
+    const frameWeight = quote.stats.lm * (frame.weight || 0);
+    updateQuote({ frame, estimates: { ...quote.estimates, frameWeight } });
   };
 
-  const handleNext = () => {
-    if (!selectedCode) {
-      alert("Please select a frame/profile to continue.");
-      return;
-    }
-    onNext();
+  const handleCornerSelect = (corner) => {
+    updateQuote({ corners: corner });
   };
+
+  // Validation: Both frame and corner must be selected (even if N/A)
+  const isComplete = quote.frame?.id && quote.corners?.id;
+
+  if (loading) return <div className="p-10 text-center font-bold">Fetching Frame Profiles...</div>;
 
   return (
-    <div className="max-w-5xl mx-auto p-6">
-      <h2 className="text-3xl font-bold mb-6 text-center text-[#0D004C]">
-        Select Frame / Profile
-      </h2>
-
-      <div className="grid md:grid-cols-2 gap-6">
-        {FRAMES.map((frame) => (
-          <div
-            key={frame.code}
-            onClick={() => handleSelect(frame)}
-            className={`p-6 border rounded-xl cursor-pointer transition
-              ${selectedCode === frame.code ? "border-[#0D004C] shadow-lg" : "border-gray-300 hover:shadow-md"}
-            `}
-          >
-            <h3 className="text-xl font-semibold mb-2">{frame.code} - {frame.size}</h3>
-            <p className="text-gray-600 mb-2">{frame.type}</p>
-            <p className="text-gray-600 mb-2">{frame.description}</p>
-            <p className="text-sm text-gray-500 mb-2">Weight per LM: {frame.weightPerLM} kg</p>
-            <p className="font-bold text-[#3D85C6]">Sell per LM: ${frame.sellPerLM}</p>
-          </div>
-        ))}
+    <div className="space-y-8 animate-fadeIn">
+      <div>
+        <h2 className="text-2xl font-black text-[#0D004C]">Frame & Structural Joiners</h2>
+        <p className="text-gray-500 text-sm">Select the aluminum profile and the corner finish required.</p>
       </div>
 
-      <div className="text-center mt-8">
-        <button
-          onClick={handleNext}
-          className="px-8 py-3 bg-[#0D004C] text-white font-semibold rounded-lg hover:bg-[#3D85C6] transition"
-        >
-          Next
-        </button>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* LEFT: FRAME SELECTION */}
+        <div className="space-y-4">
+          <label className="text-xs font-black text-indigo-400 uppercase tracking-widest">Select Profile</label>
+          <div className="grid grid-cols-1 gap-3 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+            {/* N/A Option */}
+            <div 
+              onClick={() => handleFrameSelect({ id: "NA", name: "No Frame", sell: 0, weight: 0 })}
+              className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${quote.frame?.id === "NA" ? "border-indigo-600 bg-indigo-50" : "border-gray-100"}`}
+            >
+              <p className="font-bold text-sm">N/A - Fabric Only</p>
+            </div>
+            {data.frames.map((f) => (
+              <div 
+                key={f.id}
+                onClick={() => handleFrameSelect(f)}
+                className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${quote.frame?.id === f.id ? "border-indigo-600 bg-indigo-50 shadow-sm" : "border-gray-100 hover:border-indigo-200"}`}
+              >
+                <div className="flex justify-between">
+                  <span className="font-bold text-gray-800">{f.code} - {f.size}</span>
+                  <span className="text-indigo-600 font-black">${f.sell}/m</span>
+                </div>
+                <p className="text-xs text-gray-400 mt-1">{f.description} ({f.type})</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* RIGHT: CORNER SELECTION */}
+        <div className="space-y-4">
+          <label className="text-xs font-black text-indigo-400 uppercase tracking-widest">Select Corner Type</label>
+          <div className="grid grid-cols-1 gap-3">
+             {/* N/A Option */}
+             <div 
+              onClick={() => handleCornerSelect({ id: "NA", name: "No Corners", sell: 0 })}
+              className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${quote.corners?.id === "NA" ? "border-indigo-600 bg-indigo-50" : "border-gray-100"}`}
+            >
+              <p className="font-bold text-sm">N/A - Straight Cuts Only</p>
+            </div>
+            {data.corners.map((c) => (
+              <div 
+                key={c.id}
+                onClick={() => handleCornerSelect(c)}
+                className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${quote.corners?.id === c.id ? "border-indigo-600 bg-indigo-50 shadow-sm" : "border-gray-100 hover:border-indigo-200"}`}
+              >
+                <p className="font-bold text-gray-800 text-sm">{c.type}</p>
+                <p className="text-[10px] text-gray-400 leading-tight mt-1">{c.description}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* PRICE CONTINUITY BAR */}
+      <div className="mt-10 p-5 bg-[#0D004C] rounded-2xl flex justify-between items-center text-white">
+        <div>
+          <p className="text-[10px] uppercase opacity-60">Frame Subtotal (based on {quote.stats.lm.toFixed(2)}m)</p>
+          <p className="text-xl font-black">
+            ${((quote.stats.lm * (quote.frame?.sell || 0)) + (quote.corners?.sell || 0)).toFixed(2)}
+          </p>
+        </div>
+        <div className="flex gap-4">
+          <button onClick={onBack} className="px-6 py-2 font-bold opacity-60 hover:opacity-100 transition-opacity">Back</button>
+          <button 
+            disabled={!isComplete}
+            onClick={onNext}
+            className={`px-8 py-3 rounded-xl font-bold ${isComplete ? "bg-yellow-400 text-black shadow-lg" : "bg-white/10 text-white/20 cursor-not-allowed"}`}
+          >
+            Continue to Fabric
+          </button>
+        </div>
       </div>
     </div>
   );
