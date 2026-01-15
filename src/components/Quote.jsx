@@ -29,10 +29,7 @@ const STEPS = [
   { key: "SUMMARY", label: "Quote Summary", component: QuoteSummary },
   
   
-  
 
-  // future steps here
-  // { key: "SHAPE", label: "Shape", component: ShapeStep },
 ];
 
 export default function Quote() {

@@ -5,8 +5,7 @@ import Home from "./components/Home";
 import Quote from "./components/Quote";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
-import Admin from "./pages/Admin";
-
+import AdminLayout from "./admin/AdminLayout";
 // Protected Route
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
@@ -43,10 +42,10 @@ export default function App() {
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
             <Route
-              path="/admin"
+  path="/admin/*"
               element={
                 <AdminRoute>
-                  <Admin />
+                  <AdminLayout />
                 </AdminRoute>
               }
             />

@@ -13,32 +13,44 @@ const AuthContext = createContext();
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true); // Loading during auth check
+  const [loading, setLoading] = useState(true);
 
   // Track auth state
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      try {
-        if (firebaseUser) {
-          let role = "user";
-          try {
-            const snap = await getDoc(doc(db, "users", firebaseUser.uid));
-            if (snap.exists()) role = snap.data().role;
-          } catch (err) {
-            console.warn("Firestore user doc not found or permission issue", err);
-          }
-
-          setUser({
-            uid: firebaseUser.uid,
-            email: firebaseUser.email,
-            role,
-          });
-        } else {
-          setUser(null);
-        }
-      } catch (err) {
-        console.error("Auth state error:", err);
+      if (!firebaseUser) {
         setUser(null);
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const snap = await getDoc(doc(db, "users", firebaseUser.uid));
+        if (!snap.exists()) {
+          console.warn(`User doc not found for UID: ${firebaseUser.uid}`);
+        }
+
+        const data = snap.data() || {};
+        const role = data.role || "user";
+
+        console.log("AuthContext: user fetched:", {
+          uid: firebaseUser.uid,
+          email: firebaseUser.email,
+          role,
+        });
+
+        setUser({
+          uid: firebaseUser.uid,
+          email: firebaseUser.email,
+          role,
+        });
+      } catch (err) {
+        console.error("Error fetching user role:", err);
+        setUser({
+          uid: firebaseUser.uid,
+          email: firebaseUser.email,
+          role: "user",
+        });
       } finally {
         setLoading(false);
       }
@@ -53,11 +65,12 @@ export function AuthProvider({ children }) {
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
 
-      // Try to get Firestore role, fallback to 'user'
       let role = "user";
       try {
         const snap = await getDoc(doc(db, "users", userCredential.user.uid));
-        if (snap.exists()) role = snap.data().role;
+        const data = snap.data() || {};
+        role = data.role || "user";
+        console.log("Login: fetched role:", role);
       } catch (err) {
         console.warn("Firestore read failed on login:", err);
       }
@@ -68,10 +81,10 @@ export function AuthProvider({ children }) {
         role,
       });
 
-      return userCredential.user; // ✅ return user for success
+      return userCredential.user;
     } catch (err) {
       console.error("Login failed:", err);
-      throw new Error(err.message || "Login failed. Please try again.");
+      throw new Error(err.message || "Login failed");
     } finally {
       setLoading(false);
     }
@@ -83,7 +96,6 @@ export function AuthProvider({ children }) {
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
 
-      // Create user doc in Firestore
       try {
         await setDoc(doc(db, "users", userCredential.user.uid), {
           email,
@@ -100,16 +112,16 @@ export function AuthProvider({ children }) {
         role: "user",
       });
 
-      return userCredential.user; // ✅ return user for success
+      return userCredential.user;
     } catch (err) {
       console.error("Signup failed:", err);
-      throw new Error(err.message || "Signup failed. Please try again.");
+      throw new Error(err.message || "Signup failed");
     } finally {
       setLoading(false);
     }
   };
 
-  // Logout function
+  // Logout
   const logout = async () => {
     setLoading(true);
     try {

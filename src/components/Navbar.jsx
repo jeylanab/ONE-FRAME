@@ -9,6 +9,7 @@ export default function Navbar() {
   const { user, logout, loading } = useAuth();
   const navigate = useNavigate();
 
+  // Base links
   const links = [
     { name: "Home", path: "/" },
     { name: "Quote", path: "/quote" },
@@ -16,7 +17,8 @@ export default function Navbar() {
     { name: "Contact", path: "/contact" },
   ];
 
-  if (user?.role === "admin") {
+  // Add Admin link dynamically only after loading is finished
+  if (!loading && user?.role === "admin") {
     links.push({ name: "Admin", path: "/admin" });
   }
 
@@ -49,7 +51,12 @@ export default function Navbar() {
             <span className="text-gray-500 text-sm">Loading...</span>
           ) : user ? (
             <>
-              <span className="text-sm text-gray-700">{user.email}</span>
+              <div className="text-sm text-gray-700">
+                <span>{user.email}</span>
+                <span className="ml-2 font-semibold text-[#3D85C6]">
+                  ({user.role})
+                </span>
+              </div>
               <button
                 onClick={async () => {
                   await logout();
@@ -95,7 +102,7 @@ export default function Navbar() {
 
       {/* Mobile Menu */}
       <AnimatePresence>
-        {open && (
+        {open && !loading && (
           <motion.div
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
@@ -115,19 +122,25 @@ export default function Navbar() {
                 </Link>
               ))}
 
-              {loading ? (
-                <span className="text-gray-500 text-sm">Loading...</span>
-              ) : user ? (
-                <button
-                  onClick={async () => {
-                    await logout();
-                    setOpen(false);
-                    navigate("/");
-                  }}
-                  className="mt-4 px-6 py-3 rounded-full bg-red-600 text-white hover:bg-red-700 transition"
-                >
-                  Logout
-                </button>
+              {user ? (
+                <>
+                  <div className="text-sm text-gray-700">
+                    <span>{user.email}</span>
+                    <span className="ml-2 font-semibold text-[#3D85C6]">
+                      ({user.role})
+                    </span>
+                  </div>
+                  <button
+                    onClick={async () => {
+                      await logout();
+                      setOpen(false);
+                      navigate("/");
+                    }}
+                    className="mt-4 px-6 py-3 rounded-full bg-red-600 text-white hover:bg-red-700 transition"
+                  >
+                    Logout
+                  </button>
+                </>
               ) : (
                 <>
                   <button
