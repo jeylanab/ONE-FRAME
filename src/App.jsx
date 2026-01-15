@@ -96,7 +96,7 @@ export default function App() {
     </AuthProvider>
   );
 }
-
+// function wrapper
 function FooterWrapper() {
   const location = useLocation();
   const isAdminPath = location.pathname.startsWith('/admin');
