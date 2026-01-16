@@ -8,7 +8,6 @@ export default function StepGeometry({ quote, updateQuote, onNext, onBack }) {
   const [setupOptions, setSetupOptions] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // 1. Fetch from 'setups' collection using your specific field names
   useEffect(() => {
     const fetchSetups = async () => {
       try {
@@ -27,37 +26,39 @@ export default function StepGeometry({ quote, updateQuote, onNext, onBack }) {
     fetchSetups();
   }, []);
 
-  // 2. Math Logic
   const calculateStats = (shape, dims) => {
     const a = parseFloat(dims.a) || 0;
     const b = parseFloat(dims.b) || 0;
     let lm = 0;
     let sqm = 0;
 
-    // Fixed math for millimeters to meters conversion
-    if (shape === "SQUARE") {
+    const s = shape.toUpperCase();
+
+    if (s === "SQUARE") {
       lm = (a * 4) / 1000;
       sqm = (a * a) / 1000000;
-    } else if (shape === "RECTANGLE" || shape === "DIAMOND" || shape === "TRAPEZIUM") {
+    } else if (s === "RECTANGLE" || s === "DIAMOND" || s === "TRAPEZIUM") {
       lm = (2 * (a + b)) / 1000;
       sqm = (a * b) / 1000000;
-    } else if (shape === "ROUND") {
+    } else if (s === "ROUND") {
       const radius = a / 2;
       lm = (2 * Math.PI * radius) / 1000;
       sqm = (Math.PI * Math.pow(radius, 2)) / 1000000;
-    } else if (shape === "OVAL") {
+    } else if (s === "OVAL") {
       lm = (2 * Math.PI * Math.sqrt((Math.pow(a/2, 2) + Math.pow(b/2, 2)) / 2)) / 1000;
       sqm = (Math.PI * (a/2) * (b/2)) / 1000000;
+    } else if (s === "TRIANGLE") {
+      // Assuming right-angle triangle for simplicity (A = base, B = height)
+      const hypotenuse = Math.sqrt(Math.pow(a, 2) + Math.pow(b, 2));
+      lm = (a + b + hypotenuse) / 1000;
+      sqm = (0.5 * a * b) / 1000000;
     }
     return { lm, sqm };
   };
 
-  // 3. Sync with Master Quote
   useEffect(() => {
     if (localShape) {
       const { lm, sqm } = calculateStats(localShape, localDims);
-      
-      // Match against your Firestore field: 'shape' and 'sellPrice'
       const activeSetup = setupOptions.find(
         (s) => s.shape?.toUpperCase() === localShape.toUpperCase()
       );
@@ -67,7 +68,7 @@ export default function StepGeometry({ quote, updateQuote, onNext, onBack }) {
         measurements: localDims,
         setup: {
           name: `${localShape} Setup Fee`,
-          sell: activeSetup ? activeSetup.sellPrice : 0, // Matches your 'sellPrice' field
+          sell: activeSetup ? activeSetup.sellPrice : 0,
           description: activeSetup?.description || ""
         },
         stats: { lm, sqm },
@@ -77,55 +78,65 @@ export default function StepGeometry({ quote, updateQuote, onNext, onBack }) {
 
   const isValid = localShape && quote?.stats?.lm > 0;
 
-  if (loading) return <div className="p-20 text-center animate-pulse">Synchronizing Shapes & Setups...</div>;
+  if (loading) return (
+    <div className="p-20 text-center">
+      <div className="animate-spin w-10 h-10 border-4 border-black border-t-transparent rounded-full mx-auto mb-4"></div>
+      <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Loading Geometry Modules...</p>
+    </div>
+  );
 
   return (
-    <div className="space-y-8 animate-fadeIn">
-      <div>
-        <h2 className="text-3xl font-black text-[#0D004C]">Shape & Geometry</h2>
-        <p className="text-gray-500 italic">Select a shape to apply machine set-up and template fees.</p>
-      </div>
+    <div className="max-w-6xl mx-auto space-y-12 pb-20">
+      <header className="border-l-4 border-black pl-6">
+        <h2 className="text-4xl font-black text-black uppercase tracking-tighter">Shape & Geometry</h2>
+        <p className="text-gray-500 text-sm font-medium uppercase tracking-wide">Define frame morphology and project dimensions.</p>
+      </header>
 
-      {/* SHAPE BUTTONS DYNAMICALLY LOADED FROM YOUR TABLE */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      {/* SHAPE SELECTION GRID */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         {setupOptions.map((opt) => (
           <button
             key={opt.id}
             onClick={() => setLocalShape(opt.shape)}
-            className={`p-4 rounded-2xl border-2 transition-all flex flex-col items-center justify-center gap-1 ${
+            className={`p-6 border-2 transition-all flex flex-col items-center justify-center gap-2 relative ${
               localShape === opt.shape 
-              ? "border-indigo-600 bg-indigo-50 shadow-md" 
-              : "border-gray-100 hover:border-indigo-200"
+              ? "border-black bg-white shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] -translate-y-1" 
+              : "border-gray-100 hover:border-black text-gray-400"
             }`}
           >
-            <span className="font-black text-xs tracking-tighter">{opt.shape}</span>
-            <span className="text-[10px] font-bold text-indigo-500">${opt.sellPrice}</span>
+            <span className="font-black text-[10px] uppercase tracking-widest">{opt.shape}</span>
+            <span className="text-xs font-black text-[#0D004C] tracking-tighter">${opt.sellPrice}</span>
           </button>
         ))}
       </div>
 
       {/* DIMENSION INPUTS */}
       {localShape && (
-        <div className="p-8 bg-gray-50 rounded-[2rem] border border-gray-100 grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="space-y-2">
-            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Dimension A (mm)</label>
+        <div className="p-10 bg-white border-2 border-black shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] grid grid-cols-1 md:grid-cols-2 gap-10 relative">
+          <div className="absolute -top-4 left-6 bg-black text-white px-4 py-1 text-[10px] font-black uppercase tracking-widest">
+            Engineering Specs (mm)
+          </div>
+          
+          <div className="space-y-3">
+            <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Dimension A (Width/Base)</label>
             <input
               type="number"
               value={localDims.a}
               onChange={(e) => setLocalDims({ ...localDims, a: e.target.value })}
-              className="w-full p-5 rounded-2xl border-2 border-white focus:border-indigo-500 outline-none shadow-sm transition-all"
-              placeholder="Width / Diameter"
+              className="w-full p-4 border-2 border-gray-100 focus:border-black outline-none font-black text-xl transition-all"
+              placeholder="0000"
             />
           </div>
-          {["RECTANGLE", "OVAL", "DIAMOND", "TRAPEZIUM"].includes(localShape) && (
-            <div className="space-y-2">
-              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Dimension B (mm)</label>
+
+          {["RECTANGLE", "OVAL", "DIAMOND", "TRAPEZIUM", "TRIANGLE"].includes(localShape.toUpperCase()) && (
+            <div className="space-y-3">
+              <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Dimension B (Height/Length)</label>
               <input
                 type="number"
                 value={localDims.b}
                 onChange={(e) => setLocalDims({ ...localDims, b: e.target.value })}
-                className="w-full p-5 rounded-2xl border-2 border-white focus:border-indigo-500 outline-none shadow-sm transition-all"
-                placeholder="Height / Length"
+                className="w-full p-4 border-2 border-gray-100 focus:border-black outline-none font-black text-xl transition-all"
+                placeholder="0000"
               />
             </div>
           )}
@@ -134,34 +145,44 @@ export default function StepGeometry({ quote, updateQuote, onNext, onBack }) {
 
       {/* CALCULATION SUMMARY BAR */}
       {isValid && (
-        <div className="flex flex-col md:flex-row gap-6 p-6 bg-[#0D004C] text-white rounded-2xl shadow-xl animate-slideUp">
-          <div className="flex-1">
-            <p className="text-[10px] opacity-50 font-bold uppercase tracking-widest">Perimeter (LM)</p>
-            <p className="text-2xl font-mono font-black">{quote.stats.lm.toFixed(3)}</p>
+        <div className="grid grid-cols-1 md:grid-cols-3 border-4 border-black bg-white shadow-[12px_12px_0px_0px_rgba(13,0,76,1)]">
+          <div className="p-8 border-b-2 md:border-b-0 md:border-r-2 border-black flex flex-col justify-center">
+            <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest mb-1">Perimeter (LM)</p>
+            <p className="text-4xl font-black text-black tracking-tighter">{quote.stats.lm.toFixed(3)}</p>
           </div>
-          <div className="flex-1">
-            <p className="text-[10px] opacity-50 font-bold uppercase tracking-widest">Area (SQM)</p>
-            <p className="text-2xl font-mono font-black">{quote.stats.sqm.toFixed(3)}</p>
+          <div className="p-8 border-b-2 md:border-b-0 md:border-r-2 border-black flex flex-col justify-center">
+            <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest mb-1">Surface Area (SQM)</p>
+            <p className="text-4xl font-black text-black tracking-tighter">{quote.stats.sqm.toFixed(3)}</p>
           </div>
-          <div className="flex-1 border-t md:border-t-0 md:border-l border-white/10 pt-4 md:pt-0 md:pl-6">
-            <p className="text-[10px] text-yellow-400 font-bold uppercase tracking-widest">Setup Fee</p>
-            <p className="text-2xl font-black text-yellow-400">${quote.setup?.sell}</p>
+          <div className="p-8 bg-[#0D004C] flex flex-col justify-center">
+            <p className="text-[10px] text-yellow-400 font-black uppercase tracking-widest mb-1">Shape Setup Fee</p>
+            <p className="text-4xl font-black text-white tracking-tighter">
+              ${Number(quote.setup?.sell || 0).toLocaleString()}
+            </p>
           </div>
         </div>
       )}
 
-      <div className="flex justify-between items-center pt-4">
-        <button onClick={onBack} className="px-6 py-2 font-bold text-gray-400 hover:text-gray-600 transition-colors">Back</button>
+      {/* NAVIGATION */}
+      <footer className="sticky bottom-0 bg-white border-t-4 border-black p-8 flex flex-col md:flex-row justify-between items-center gap-6">
+        <button 
+          onClick={onBack} 
+          className="px-10 py-4 font-black uppercase text-[10px] tracking-widest border-2 border-black hover:bg-gray-50 transition"
+        >
+          Back
+        </button>
         <button 
           disabled={!isValid}
           onClick={onNext}
-          className={`px-12 py-4 rounded-2xl font-black transition-all ${
-            isValid ? "bg-[#0D004C] text-white shadow-2xl hover:scale-105" : "bg-gray-100 text-gray-300 cursor-not-allowed"
+          className={`px-12 py-4 font-black uppercase text-[10px] tracking-widest transition-all ${
+            isValid 
+            ? "bg-black text-white hover:bg-[#0D004C] shadow-[4px_4px_0px_0px_rgba(13,0,76,1)]" 
+            : "bg-gray-100 text-gray-300 cursor-not-allowed"
           }`}
         >
-          Proceed to Frame Selection →
+          Continue to Frame Selection
         </button>
-      </div>
+      </footer>
     </div>
   );
 }

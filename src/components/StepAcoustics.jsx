@@ -8,19 +8,28 @@ export default function StepAcoustics({ quote, updateQuote, onNext, onBack }) {
 
   useEffect(() => {
     const fetchAcousticData = async () => {
-      const snap = await getDocs(collection(db, "acoustics"));
-      setData(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-      setLoading(false);
+      try {
+        const snap = await getDocs(collection(db, "acoustics"));
+        setData(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      } catch (err) {
+        console.error("Firestore Fetch Error:", err);
+      } finally {
+        setLoading(false);
+      }
     };
     fetchAcousticData();
   }, []);
 
   const handleSelect = (item) => {
-    // Acoustic weight is often significant (e.g., 2.5kg per SQM)
-    const acousticWeight = quote.stats.sqm * (item.weightPerSqm || 2.5);
+    // Standardizing weight calculation (2.5kg per SQM if not in DB)
+    const weightVal = parseFloat(item.weightPerSqm) || 2.5;
+    const acousticWeight = quote.stats.sqm * weightVal;
     
     updateQuote({ 
-      acoustics: item,
+      acoustics: {
+        ...item,
+        sell: parseFloat(item.sellSQM) || 0 // Matching your sellSQM field
+      },
       estimates: { 
         ...quote.estimates, 
         acousticWeight: item.id === "NA" ? 0 : acousticWeight 
@@ -30,34 +39,38 @@ export default function StepAcoustics({ quote, updateQuote, onNext, onBack }) {
 
   const isComplete = quote.acoustics?.id !== undefined;
   
-  // Calculate running subtotal for this step
+  // Running subtotal for this specific component
   const acousticSubtotal = quote.stats.sqm * (quote.acoustics?.sell || 0);
 
-  if (loading) return <div className="p-10 text-center animate-pulse">Filtering Acoustic Options...</div>;
+  if (loading) return (
+    <div className="p-20 text-center">
+      <div className="animate-spin w-10 h-10 border-4 border-black border-t-transparent rounded-full mx-auto mb-4"></div>
+      <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Filtering Acoustic Media...</p>
+    </div>
+  );
 
   return (
-    <div className="space-y-8 animate-fadeIn">
-      <div className="flex justify-between items-end">
+    <div className="max-w-6xl mx-auto space-y-12 pb-20">
+      {/* HEADER */}
+      <header className="flex justify-between items-end border-l-4 border-black pl-6">
         <div>
-          <h2 className="text-2xl font-black text-[#0D004C]">Acoustic Treatment</h2>
-          <p className="text-gray-500 text-sm">Select sound-absorbent infill for your {quote.frame?.size} frame.</p>
+          <h2 className="text-4xl font-black text-black uppercase tracking-tighter">Acoustic Treatment</h2>
+          <p className="text-gray-500 text-sm font-medium uppercase tracking-wide">Select sound-absorbent infill for {quote.frame?.code || "selected"} frame.</p>
         </div>
-        <div className="bg-indigo-50 px-4 py-2 rounded-lg border border-indigo-100">
-          <p className="text-[10px] font-bold text-indigo-400 uppercase">Selected Frame</p>
-          <p className="text-sm font-bold text-indigo-900">{quote.frame?.code || "No Frame Selected"}</p>
-        </div>
-      </div>
+      </header>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {/* N/A Option */}
         <div 
-          onClick={() => handleSelect({ id: "NA", description: "None / Not Required", sell: 0 })}
-          className={`p-6 rounded-2xl border-2 cursor-pointer transition-all flex flex-col justify-between ${
-            quote.acoustics?.id === "NA" ? "border-indigo-600 bg-indigo-50 shadow-md" : "border-gray-100 hover:border-indigo-200"
+          onClick={() => handleSelect({ id: "NA", description: "None / Not Required", sellSQM: 0 })}
+          className={`p-8 border-2 cursor-pointer transition-all flex flex-col justify-between min-h-[160px] ${
+            quote.acoustics?.id === "NA" 
+            ? "border-black bg-white shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] -translate-y-1" 
+            : "border-gray-100 hover:border-black text-gray-400"
           }`}
         >
-          <p className="font-bold text-gray-800">No Acoustics</p>
-          <p className="text-xs text-gray-400 mt-2">Standard hollow frame configuration.</p>
+          <p className="font-black uppercase text-sm tracking-widest">No Acoustics</p>
+          <p className="text-[10px] font-bold uppercase mt-2">Standard hollow frame configuration.</p>
         </div>
 
         {/* Firestore Options */}
@@ -65,52 +78,71 @@ export default function StepAcoustics({ quote, updateQuote, onNext, onBack }) {
           <div 
             key={item.id}
             onClick={() => handleSelect(item)}
-            className={`p-6 rounded-2xl border-2 cursor-pointer transition-all flex flex-col justify-between ${
-              quote.acoustics?.id === item.id ? "border-indigo-600 bg-indigo-50 shadow-md" : "border-gray-100 hover:border-indigo-200"
+            className={`p-8 border-2 cursor-pointer transition-all flex flex-col justify-between min-h-[160px] relative ${
+              quote.acoustics?.id === item.id 
+              ? "border-black bg-white shadow-[10px_10px_0px_0px_rgba(0,0,0,1)] -translate-y-1" 
+              : "border-gray-100 hover:border-black"
             }`}
           >
             <div className="flex justify-between items-start w-full">
-              <p className="font-bold text-gray-800 leading-tight">{item.size} {item.description}</p>
-              <span className="text-indigo-600 font-black ml-2">${item.sell}/sqm</span>
+              <div className="space-y-1">
+                <span className="bg-black text-white px-2 py-0.5 text-[9px] font-black uppercase tracking-widest">{item.code}</span>
+                <p className="font-black text-black text-lg uppercase tracking-tighter leading-none">
+                   {item.description}
+                </p>
+                <p className="text-[10px] font-bold text-gray-400 uppercase">{item.size} Thickness</p>
+              </div>
+              <div className="text-right">
+                <p className="text-[#0D004C] font-black text-2xl tracking-tighter">${item.sellSQM}</p>
+                <p className="text-[9px] text-gray-400 font-black uppercase">per sqm</p>
+              </div>
             </div>
-            <p className="text-[10px] text-gray-400 mt-4 uppercase tracking-widest font-bold">Effect: High NRC Rating</p>
+            <div className="pt-4 border-t border-gray-100 mt-4">
+               <p className="text-[9px] text-gray-500 font-black uppercase tracking-widest">Performance: High NRC Rating</p>
+            </div>
           </div>
         ))}
       </div>
 
-      {/* CONTINUITY SUMMARY BAR */}
-      <div className="mt-10 p-6 bg-[#0D004C] rounded-3xl text-white flex flex-col md:flex-row justify-between items-center gap-6">
+      {/* FOOTER SUMMARY BAR */}
+      <footer className="sticky bottom-0 bg-white border-t-4 border-black p-8 flex flex-col md:flex-row justify-between items-center gap-6 shadow-[0_-10px_30px_rgba(0,0,0,0.05)]">
         <div className="flex gap-12">
           <div>
-            <p className="text-[10px] uppercase opacity-60 font-bold">Acoustics Subtotal</p>
-            <p className="text-xl font-black">${acousticSubtotal.toFixed(2)}</p>
+            <p className="text-[10px] uppercase font-black text-gray-400 tracking-widest mb-1">Acoustics Subtotal</p>
+            <p className="text-3xl font-black text-black tracking-tighter">
+              ${acousticSubtotal.toFixed(2)}
+            </p>
           </div>
-          <div>
-            <p className="text-[10px] uppercase opacity-60 font-bold">Total Est. Weight</p>
-            <p className="text-xl font-black">
+          <div className="hidden sm:block">
+            <p className="text-[10px] uppercase font-black text-gray-400 tracking-widest mb-1">Total Est. Weight</p>
+            <p className="text-3xl font-black text-black tracking-tighter">
               {(
                 quote.estimates.frameWeight + 
                 quote.estimates.fabricWeight + 
-                quote.estimates.lightingWeight + 
+                (quote.estimates.lightingWeight || 0) + 
                 (quote.estimates.acousticWeight || 0)
-              ).toFixed(1)} kg
+              ).toFixed(1)}kg
             </p>
           </div>
         </div>
 
         <div className="flex gap-4 w-full md:w-auto">
-          <button onClick={onBack} className="flex-1 md:flex-none px-8 py-3 font-bold opacity-60 hover:opacity-100">Back</button>
+          <button onClick={onBack} className="px-10 py-4 font-black uppercase text-[10px] tracking-widest border-2 border-black hover:bg-gray-50 transition">
+            Back
+          </button>
           <button 
             disabled={!isComplete}
             onClick={onNext}
-            className={`flex-1 md:flex-none px-12 py-4 rounded-2xl font-black transition-all ${
-              isComplete ? "bg-yellow-400 text-black shadow-xl hover:scale-105" : "bg-white/10 text-white/20 cursor-not-allowed"
+            className={`px-12 py-4 font-black uppercase text-[10px] tracking-widest transition-all ${
+              isComplete 
+              ? "bg-black text-white hover:bg-[#0D004C] shadow-[4px_4px_0px_0px_rgba(13,0,76,1)]" 
+              : "bg-gray-100 text-gray-300 cursor-not-allowed"
             }`}
           >
             Go to Logistics
           </button>
         </div>
-      </div>
+      </footer>
     </div>
   );
 }
