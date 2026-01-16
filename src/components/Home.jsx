@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { FaDraftingCompass, FaCogs, FaLightbulb, FaArrowRight } from "react-icons/fa";
+import { FaDraftingCompass, FaCogs, FaLightbulb, FaArrowRight, FaGlobeAmericas, FaShieldAlt } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 
 // Assets
@@ -13,7 +13,6 @@ export default function Home() {
   const images = [img1, img2, img3];
   const [currentIdx, setCurrentIdx] = useState(0);
 
-  // Auto-rotate carousel every 5 seconds
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentIdx((prev) => (prev + 1) % images.length);
@@ -79,12 +78,10 @@ export default function Home() {
                   alt="Architecture Display"
                   className="w-full h-full object-cover"
                 />
-                {/* Overlay for professional depth */}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
               </motion.div>
             </AnimatePresence>
 
-            {/* Carousel Indicators */}
             <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-3 z-20">
               {images.map((_, i) => (
                 <div 
@@ -98,58 +95,85 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Subtle Background Text */}
         <div className="absolute bottom-0 left-0 text-[15vw] font-black text-gray-50 opacity-[0.03] select-none pointer-events-none uppercase -mb-10">
           Architectural
         </div>
       </section>
 
-      {/* SYSTEMS SECTION - CLEAN GRID */}
-      <section className="py-32 px-6 border-t border-gray-50">
+      {/* REPLACED SECTION: BRAND PILLARS / STRATEGIC VALUE */}
+      <section className="py-32 px-6 bg-white overflow-hidden">
         <div className="max-w-7xl mx-auto">
-          <div className="flex flex-col md:flex-row justify-between items-end mb-20 gap-6">
-            <div>
-              <p className="text-[#0D004C] font-black uppercase tracking-[0.2em] text-xs mb-4">Product Range</p>
-              <h2 className="text-4xl md:text-5xl font-black uppercase tracking-tighter">Our Systems</h2>
-            </div>
-            <p className="text-gray-400 max-w-xs text-sm font-medium">
-              A comprehensive suite of modular fabric solutions designed for seamless integration.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-1">
-            {[
-              { name: "CLIPSO®", desc: "Premium Stretch Fabric" },
-              { name: "resonate™", desc: "Acoustic Solutions" },
-              { name: "lucent™", desc: "Illuminated Systems" },
-              { name: "cadro 3D™", desc: "Modular Displays" },
-              { name: "adframe™", desc: "Advertising Media" },
-              { name: "animate™", desc: "Light Motion Tech" }
-            ].map((system, idx) => (
-              <div
-                key={idx}
-                className="group p-12 bg-white border border-gray-100 hover:bg-[#0D004C] transition-all duration-500 cursor-default"
-              >
-                <h3 className="text-xl font-black mb-4 uppercase group-hover:text-white transition-colors">{system.name}</h3>
-                <p className="text-gray-400 text-sm group-hover:text-gray-300 transition-colors">{system.desc}</p>
-                <div className="mt-8 h-1 w-0 bg-white group-hover:w-full transition-all duration-500" />
+          <div className="grid lg:grid-cols-2 gap-24 items-start">
+            
+            {/* Left: Philosophy */}
+            <div className="sticky top-24">
+              <p className="text-[#0D004C] font-black uppercase tracking-[0.4em] text-xs mb-6">Our DNA</p>
+              <h2 className="text-5xl md:text-7xl font-black uppercase tracking-tighter leading-[0.85] mb-8 text-black">
+                Performance <br />
+                <span className="text-gray-200">Without</span> <br />
+                Compromise.
+              </h2>
+              <p className="text-gray-500 text-lg leading-relaxed mb-10 max-w-lg font-medium">
+                The ultimate fabric tension system functionally outperforms any other comparable system 
+                available today. We transform bold architectural ideas into amazing realities.
+              </p>
+              
+              <div className="p-8 border-l-4 border-black bg-gray-50">
+                <p className="italic font-bold text-black text-sm">
+                  "Innovation is our passion; it’s part of our DNA. We are constantly striving 
+                  to positively influence the industry by what we deliver to market."
+                </p>
               </div>
-            ))}
+            </div>
+
+            {/* Right: The Process Grid */}
+            <div className="grid gap-px bg-gray-200 border border-gray-200">
+              {[
+                { 
+                  icon: <FaGlobeAmericas className="text-2xl" />, 
+                  title: "Sustainability", 
+                  text: "2nd Thread™ Circularity Program focuses on raw material recovery and green manufacturing." 
+                },
+                { 
+                  icon: <FaCogs className="text-2xl" />, 
+                  title: "Precision", 
+                  text: "Vertically integrated in NZ, ensuring every frame is engineered to sub-millimeter accuracy." 
+                },
+                { 
+                  icon: <FaShieldAlt className="text-2xl" />, 
+                  title: "Integrity", 
+                  text: "High-performance PVF surfaces and certified acoustic performance for demanding environments." 
+                },
+                { 
+                  icon: <FaLightbulb className="text-2xl" />, 
+                  title: "Innovation", 
+                  text: "From programmable animate™ lighting to organic organa™ geometries, we reimagine limits." 
+                }
+              ].map((pillar, idx) => (
+                <div key={idx} className="bg-white p-12 transition-all hover:bg-gray-50 group">
+                  <div className="text-[#0D004C] mb-6 transform group-hover:scale-110 transition-transform origin-left">
+                    {pillar.icon}
+                  </div>
+                  <h3 className="text-xl font-black uppercase tracking-tight mb-4">{pillar.title}</h3>
+                  <p className="text-gray-500 text-sm leading-relaxed">{pillar.text}</p>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </section>
 
       {/* FINAL CALL TO ACTION */}
-      <section className="py-24 px-6 bg-black">
+      <section className="py-32 px-6 bg-black">
         <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-4xl md:text-6xl font-black text-white uppercase tracking-tighter mb-8">
-            Ready to <span className="text-[#0D004C] outline-text">Evolve</span> your space?
+          <h2 className="text-4xl md:text-6xl font-black text-white uppercase tracking-tighter mb-8 leading-tight">
+            Ready to <span className="text-gray-500 outline-text">Evolve</span> <br /> your space?
           </h2>
           <button 
             onClick={() => navigate("/quote")}
-            className="px-12 py-5 bg-white text-black font-black uppercase tracking-widest hover:bg-[#0D004C] hover:text-white transition-all rounded-full"
+            className="px-12 py-5 bg-white text-black font-black uppercase tracking-widest hover:bg-[#0D004C] hover:text-white transition-all shadow-[0_20px_50px_rgba(255,255,255,0.1)]"
           >
-            Launch Calculator
+            Launch Quote Calculator
           </button>
         </div>
       </section>
