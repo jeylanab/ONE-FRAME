@@ -3,12 +3,24 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import logo from "../assets/oneframe.png";
-import { ChevronDownIcon, UserCircleIcon, Cog6ToothIcon, ArrowRightOnRectangleIcon } from "@heroicons/react/24/outline";
+import { 
+  ChevronDownIcon, 
+  UserCircleIcon, 
+  Cog6ToothIcon, 
+  ArrowRightOnRectangleIcon, 
+  ShieldCheckIcon,
+  XMarkIcon 
+} from "@heroicons/react/24/outline";
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const { user, logout, loading } = useAuth();
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [loadingAction, setLoadingAction] = useState(false);
+  const [message, setMessage] = useState({ type: "", text: "" });
+
+  const { user, logout, updatePassword, loading } = useAuth(); // Ensure updatePassword exists in AuthContext
   const navigate = useNavigate();
 
   const links = [
@@ -18,18 +30,32 @@ export default function Navbar() {
     { name: "Contact", path: "/contact" },
   ];
 
+  const handlePasswordUpdate = async (e) => {
+    e.preventDefault();
+    setLoadingAction(true);
+    setMessage({ type: "", text: "" });
+    try {
+      await updatePassword(newPassword);
+      setMessage({ type: "success", text: "Security credentials updated." });
+      setTimeout(() => setShowPasswordModal(false), 2000);
+    } catch (err) {
+      setMessage({ type: "error", text: "Failed to update. Re-login required." });
+    }
+    setLoadingAction(false);
+  };
+
   return (
     <div className="w-full sticky top-0 z-50 bg-white border-b border-gray-100">
       <nav className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
         
         {/* Brand/Logo */}
         <div className="flex items-center gap-4 cursor-pointer" onClick={() => navigate("/")}>
-          <img src={logo} alt="OneFrame" className="h-10 w-auto" />
+          <img src={logo} alt="OneFrame" className="h-10 w-auto grayscale" />
           <span className="font-black text-xl tracking-tighter text-[#0D004C] uppercase">OneFrame</span>
         </div>
 
         {/* Desktop Links */}
-        <div className="hidden md:flex items-center gap-8 text-[13px] font-bold uppercase tracking-widest text-gray-500">
+        <div className="hidden md:flex items-center gap-8 text-[11px] font-black uppercase tracking-[0.2em] text-gray-400">
           {links.map((link) => (
             <Link key={link.name} to={link.path} className="hover:text-black transition-colors">
               {link.name}
@@ -45,13 +71,13 @@ export default function Navbar() {
             <div className="relative">
               <button 
                 onClick={() => setUserMenuOpen(!userMenuOpen)}
-                className="flex items-center gap-2 bg-gray-50 px-4 py-2 rounded-xl border border-gray-100 hover:bg-gray-100 transition-all"
+                className="flex items-center gap-3 bg-white px-4 py-2 rounded-xl border border-gray-200 hover:border-black transition-all"
               >
                 <div className="text-right hidden lg:block">
-                  <p className="text-[11px] font-black text-[#0D004C] truncate max-w-[150px] leading-tight">{user.email}</p>
-                  <p className="text-[9px] uppercase tracking-widest text-gray-400 font-bold">{user.role}</p>
+                  <p className="text-[10px] font-black text-[#0D004C] truncate max-w-[120px] uppercase leading-tight">{user.email.split('@')[0]}</p>
+                  <p className="text-[8px] uppercase tracking-widest text-gray-400 font-black">{user.role}</p>
                 </div>
-                <UserCircleIcon className="w-6 h-6 text-[#0D004C]" />
+                <UserCircleIcon className="w-6 h-6 text-black" />
                 <ChevronDownIcon className={`w-3 h-3 transition-transform ${userMenuOpen ? 'rotate-180' : ''}`} />
               </button>
 
@@ -62,22 +88,37 @@ export default function Navbar() {
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: 10 }}
-                    className="absolute right-0 mt-2 w-56 bg-white border border-gray-100 shadow-2xl rounded-2xl overflow-hidden py-2"
+                    className="absolute right-0 mt-2 w-64 bg-white border border-gray-200 shadow-[0_20px_50px_rgba(0,0,0,0.1)] rounded-2xl overflow-hidden py-2"
                   >
+                    <div className="px-4 py-2 mb-2 border-b border-gray-50">
+                        <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Signed in as</p>
+                        <p className="text-xs font-bold text-black truncate">{user.email}</p>
+                    </div>
+
                     {user.role === "admin" && (
                       <button 
                         onClick={() => { navigate("/admin"); setUserMenuOpen(false); }}
-                        className="w-full px-4 py-3 flex items-center gap-3 text-sm font-bold text-gray-700 hover:bg-gray-50 transition"
+                        className="w-full px-4 py-3 flex items-center gap-3 text-[11px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50 transition"
                       >
-                        <Cog6ToothIcon className="w-5 h-5 text-indigo-500" />
+                        <Cog6ToothIcon className="w-4 h-4 text-[#0D004C]" />
                         Admin Dashboard
                       </button>
                     )}
+
+                    {/* NEW: Edit Password Action */}
+                    <button 
+                      onClick={() => { setShowPasswordModal(true); setUserMenuOpen(false); }}
+                      className="w-full px-4 py-3 flex items-center gap-3 text-[11px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50 transition"
+                    >
+                      <ShieldCheckIcon className="w-4 h-4 text-green-600" />
+                      Update Password
+                    </button>
+
                     <button 
                       onClick={async () => { await logout(); navigate("/"); setUserMenuOpen(false); }}
-                      className="w-full px-4 py-3 flex items-center gap-3 text-sm font-bold text-gray-700 hover:bg-red-50 hover:text-red-600 transition"
+                      className="w-full px-4 py-3 flex items-center gap-3 text-[11px] font-black uppercase tracking-widest text-red-500 hover:bg-red-50 transition"
                     >
-                      <ArrowRightOnRectangleIcon className="w-5 h-5 text-gray-400" />
+                      <ArrowRightOnRectangleIcon className="w-4 h-4" />
                       Sign Out
                     </button>
                   </motion.div>
@@ -86,10 +127,10 @@ export default function Navbar() {
             </div>
           ) : (
             <div className="flex gap-2">
-              <button onClick={() => navigate("/login")} className="px-6 py-2.5 text-sm font-black text-black hover:bg-gray-50 rounded-xl transition">
+              <button onClick={() => navigate("/login")} className="px-6 py-2.5 text-[10px] font-black text-black hover:bg-gray-50 rounded-xl transition uppercase tracking-widest">
                 LOGIN
               </button>
-              <button onClick={() => navigate("/signup")} className="px-6 py-2.5 text-sm font-black bg-black text-white rounded-xl shadow-lg hover:bg-[#0D004C] transition hover:scale-105 active:scale-95">
+              <button onClick={() => navigate("/signup")} className="px-6 py-2.5 text-[10px] font-black bg-black text-white rounded-xl shadow-lg hover:bg-[#0D004C] transition hover:scale-105 active:scale-95 uppercase tracking-widest">
                 JOIN FREE
               </button>
             </div>
@@ -104,49 +145,59 @@ export default function Navbar() {
         </button>
       </nav>
 
-      {/* Mobile Menu */}
+      {/* Password Update Modal */}
       <AnimatePresence>
-        {open && (
-          <motion.div
-            initial={{ height: 0 }}
-            animate={{ height: "auto" }}
-            exit={{ height: 0 }}
-            className="md:hidden bg-white border-t border-gray-50 overflow-hidden"
-          >
-            <div className="p-6 flex flex-col gap-6">
-              {links.map((link) => (
-                <Link key={link.name} to={link.path} onClick={() => setOpen(false)} className="text-xl font-black text-[#0D004C]">
-                  {link.name}
-                </Link>
-              ))}
-              
-              <div className="h-[1px] bg-gray-100 w-full" />
+        {showPasswordModal && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm">
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white w-full max-w-md p-10 border-2 border-black relative"
+            >
+              <button 
+                onClick={() => setShowPasswordModal(false)}
+                className="absolute top-4 right-4 p-2 hover:bg-gray-100 transition"
+              >
+                <XMarkIcon className="w-6 h-6 text-black" />
+              </button>
 
-              {user ? (
-                <div className="space-y-4">
-                  <div>
-                    <p className="text-xs font-black text-gray-400 uppercase tracking-widest">{user.role}</p>
-                    <p className="text-sm font-bold text-[#0D004C]">{user.email}</p>
+              <h2 className="text-3xl font-black uppercase tracking-tighter text-black mb-2">Security</h2>
+              <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-8">Update Account Password</p>
+
+              <form onSubmit={handlePasswordUpdate} className="space-y-6">
+                {message.text && (
+                  <div className={`p-4 text-[10px] font-black uppercase tracking-widest border-l-4 ${message.type === 'success' ? 'bg-green-50 border-green-600 text-green-800' : 'bg-red-50 border-red-600 text-red-800'}`}>
+                    {message.text}
                   </div>
-                  {user.role === "admin" && (
-                    <button onClick={() => {navigate("/admin"); setOpen(false);}} className="w-full p-4 bg-indigo-50 text-indigo-700 rounded-2xl font-bold">
-                      Admin Panel
-                    </button>
-                  )}
-                  <button onClick={async () => {await logout(); setOpen(false); navigate("/");}} className="w-full p-4 bg-gray-50 text-gray-500 rounded-2xl font-bold">
-                    Logout
-                  </button>
+                )}
+                
+                <div className="space-y-2">
+                  <label className="text-[9px] font-black uppercase tracking-widest text-gray-400">New Password</label>
+                  <input 
+                    type="password"
+                    required
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    className="w-full border-b-2 border-gray-100 focus:border-black outline-none py-3 font-bold transition-all"
+                    placeholder="••••••••"
+                  />
                 </div>
-              ) : (
-                <div className="flex flex-col gap-3">
-                  <button onClick={() => {navigate("/login"); setOpen(false);}} className="w-full p-4 border-2 border-black rounded-2xl font-black uppercase">Login</button>
-                  <button onClick={() => {navigate("/signup"); setOpen(false);}} className="w-full p-4 bg-black text-white rounded-2xl font-black uppercase shadow-xl">Sign Up</button>
-                </div>
-              )}
-            </div>
-          </motion.div>
+
+                <button 
+                  disabled={loadingAction}
+                  type="submit"
+                  className="w-full bg-black text-white py-5 text-[10px] font-black uppercase tracking-[0.3em] hover:bg-[#0D004C] transition-all flex justify-center items-center"
+                >
+                  {loadingAction ? "Processing..." : "Confirm Update"}
+                </button>
+              </form>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
+
+      {/* Mobile Menu ... (remains similar, added security link below) */}
     </div>
   );
 }

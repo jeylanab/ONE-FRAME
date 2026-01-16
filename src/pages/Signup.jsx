@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
+import { db } from "../firebase/firebase"; // Ensure this path is correct
+import { doc, setDoc, serverTimestamp } from "firebase/firestore"; 
 import { motion } from "framer-motion";
 import { UserPlusIcon, LockClosedIcon, EnvelopeIcon, CheckBadgeIcon } from "@heroicons/react/24/outline";
 
@@ -9,21 +11,42 @@ export default function Signup() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false); // Added loading state for UX
   const { signup } = useAuth();
   const navigate = useNavigate();
 
   const handleSignup = async (e) => {
     e.preventDefault();
     setError("");
+    
     if (password !== confirmPassword) {
       setError("Security credentials do not match.");
       return;
     }
+
+    setLoading(true);
+
     try {
-      await signup(email, password);
+      // 1. Create the user in Firebase Auth
+      const userCredential = await signup(email, password);
+      const user = userCredential.user;
+
+      // 2. Create the 'users' document in Firestore using the Auth UID
+      await setDoc(doc(db, "users", user.uid), {
+        uid: user.uid,
+        email: user.email,
+        role: "user", // Default role
+        createdAt: serverTimestamp(),
+        company: "", // Placeholder for architectural firm details
+        status: "active",
+        quotesCount: 0
+      });
+
       navigate("/");
     } catch (err) {
-      setError(err.message);
+      setError(err.message || "Failed to initialize account.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -36,27 +59,18 @@ export default function Signup() {
         className="hidden lg:flex w-1/2 bg-black relative overflow-hidden items-center justify-center p-20"
       >
         <div className="absolute inset-0 opacity-10">
-          {/* Subtle Grid Pattern to represent framing */}
           <div className="absolute inset-0" style={{ backgroundImage: 'linear-gradient(#ffffff 1px, transparent 1px), linear-gradient(90deg, #ffffff 1px, transparent 1px)', backgroundSize: '100px 100px' }} />
         </div>
         
         <div className="relative z-10 max-w-md">
-          <span className="text-[#0D004C] font-black tracking-[0.5em] uppercase text-xs">Sustainability First</span>
+          <span className="text-[#0D004C] font-black tracking-[0.5em] uppercase text-xs">Account Initialization</span>
           <h1 className="text-7xl font-black text-white uppercase tracking-tighter leading-[0.8] mt-4 mb-8">
-            Join the <br />
-            <span className="text-gray-500 italic">Evolution.</span>
+            Start Your <br />
+            <span className="text-gray-500 italic">Portfolio.</span>
           </h1>
           <p className="text-gray-400 font-medium leading-relaxed">
-            Become a partner in New Zealand’s most sustainable architectural fabric ecosystem. Access 2nd Thread™ circularity programs and high-performance specifications.
+            By joining the OneFrame network, you gain access to our precision configurator and specialized 2nd Thread™ architectural data.
           </p>
-          
-          <div className="mt-12 space-y-4">
-            {["NZ Made Systems", "Certified Acoustics", "Sustainable Materials"].map((item) => (
-              <div key={item} className="flex items-center gap-3 text-white/70 text-xs font-black uppercase tracking-widest">
-                <CheckBadgeIcon className="w-5 h-5 text-[#0D004C]" /> {item}
-              </div>
-            ))}
-          </div>
         </div>
       </motion.div>
 
@@ -68,15 +82,15 @@ export default function Signup() {
           className="w-full max-w-md"
         >
           <div className="mb-12">
-            <h2 className="text-4xl font-black text-black uppercase tracking-tighter mb-2">Create Account</h2>
-            <div className="h-1 w-12 bg-[#0D004C]" />
+            <h2 className="text-4xl font-black text-black uppercase tracking-tighter mb-2 text-center md:text-left">Register</h2>
+            <div className="h-1 w-12 bg-[#0D004C] mx-auto md:mx-0" />
           </div>
 
           <form onSubmit={handleSignup} className="space-y-6">
             {error && (
               <motion.div 
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
                 className="p-4 bg-red-50 border-l-4 border-red-600 text-red-800 text-[10px] font-black uppercase tracking-widest"
               >
                 {error}
@@ -90,9 +104,10 @@ export default function Signup() {
               <input
                 type="email"
                 required
+                disabled={loading}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full border-b-2 border-gray-100 focus:border-black outline-none py-3 font-bold transition-all placeholder:text-gray-200"
+                className="w-full border-b-2 border-gray-100 focus:border-black outline-none py-3 font-bold transition-all placeholder:text-gray-200 disabled:opacity-50"
                 placeholder="architect@studio.com"
               />
             </div>
@@ -105,9 +120,10 @@ export default function Signup() {
                 <input
                   type="password"
                   required
+                  disabled={loading}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full border-b-2 border-gray-100 focus:border-black outline-none py-3 font-bold transition-all"
+                  className="w-full border-b-2 border-gray-100 focus:border-black outline-none py-3 font-bold transition-all disabled:opacity-50"
                 />
               </div>
 
@@ -118,9 +134,10 @@ export default function Signup() {
                 <input
                   type="password"
                   required
+                  disabled={loading}
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="w-full border-b-2 border-gray-100 focus:border-black outline-none py-3 font-bold transition-all"
+                  className="w-full border-b-2 border-gray-100 focus:border-black outline-none py-3 font-bold transition-all disabled:opacity-50"
                 />
               </div>
             </div>
@@ -128,10 +145,11 @@ export default function Signup() {
             <div className="pt-6">
               <button
                 type="submit"
-                className="w-full bg-black text-white py-5 font-black uppercase tracking-[0.3em] text-xs flex items-center justify-center gap-3 hover:bg-[#0D004C] transition-all shadow-2xl group"
+                disabled={loading}
+                className={`w-full bg-black text-white py-5 font-black uppercase tracking-[0.3em] text-xs flex items-center justify-center gap-3 transition-all shadow-2xl group ${loading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-[#0D004C]'}`}
               >
-                Register Account
-                <UserPlusIcon className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                {loading ? "Initializing..." : "Register Account"}
+                {!loading && <UserPlusIcon className="w-4 h-4 group-hover:scale-110 transition-transform" />}
               </button>
             </div>
           </form>
