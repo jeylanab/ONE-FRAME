@@ -1,17 +1,18 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
-import { db } from "../firebase/firebase"; // Ensure this path is correct
+import { db } from "../firebase/firebase"; 
 import { doc, setDoc, serverTimestamp } from "firebase/firestore"; 
 import { motion } from "framer-motion";
 import { UserPlusIcon, LockClosedIcon, EnvelopeIcon, CheckBadgeIcon } from "@heroicons/react/24/outline";
+import heroImage from "../assets/hero.png";
 
 export default function Signup() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false); // Added loading state for UX
+  const [loading, setLoading] = useState(false);
   const { signup } = useAuth();
   const navigate = useNavigate();
 
@@ -25,24 +26,21 @@ export default function Signup() {
     }
 
     setLoading(true);
-
     try {
-      // 1. Create the user in Firebase Auth
       const userCredential = await signup(email, password);
       const user = userCredential.user;
 
-      // 2. Create the 'users' document in Firestore using the Auth UID
       await setDoc(doc(db, "users", user.uid), {
         uid: user.uid,
         email: user.email,
-        role: "user", // Default role
+        role: "user",
         createdAt: serverTimestamp(),
-        company: "", // Placeholder for architectural firm details
+        company: "", 
         status: "active",
         quotesCount: 0
       });
 
-      navigate("/");
+      navigate("/quote");
     } catch (err) {
       setError(err.message || "Failed to initialize account.");
     } finally {
@@ -51,42 +49,42 @@ export default function Signup() {
   };
 
   return (
-    <div className="min-h-[90vh] flex items-stretch bg-white">
-      {/* Left Side: Sustainability & Brand Message */}
+    <div className="min-h-screen w-full flex flex-col lg:flex-row bg-white">
+      {/* LHS Section: Now visible on all screens (Top on Mobile, Left on Desktop) */}
       <motion.div 
-        initial={{ opacity: 0, x: -20 }}
-        animate={{ opacity: 1, x: 0 }}
-        className="hidden lg:flex w-1/2 bg-black relative overflow-hidden items-center justify-center p-20"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="w-full lg:w-1/2 bg-[#F8F8F8] flex items-center justify-center p-8 lg:p-12 border-b-2 lg:border-b-0 lg:border-r-2 border-gray-100"
       >
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute inset-0" style={{ backgroundImage: 'linear-gradient(#ffffff 1px, transparent 1px), linear-gradient(90deg, #ffffff 1px, transparent 1px)', backgroundSize: '100px 100px' }} />
-        </div>
-        
-        <div className="relative z-10 max-w-md">
-          <span className="text-[#0D004C] font-black tracking-[0.5em] uppercase text-xs">Account Initialization</span>
-          <h1 className="text-7xl font-black text-white uppercase tracking-tighter leading-[0.8] mt-4 mb-8">
-            Start Your <br />
-            <span className="text-gray-500 italic">Portfolio.</span>
-          </h1>
-          <p className="text-gray-400 font-medium leading-relaxed">
-            By joining the OneFrame network, you gain access to our precision configurator and specialized 2nd Thread™ architectural data.
-          </p>
+        <div className="max-w-xs lg:max-w-md text-center">
+          <motion.img 
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ delay: 0.2 }}
+            src={heroImage}
+            alt="OneFrame Logo" 
+            className="w-48 lg:w-full h-auto mx-auto object-contain mb-6 lg:mb-8 grayscale"
+          />
+          <div className="space-y-1 lg:space-y-2">
+            <p className="text-[8px] lg:text-[10px] font-black uppercase tracking-[0.4em] text-gray-400">System Registration</p>
+            <h1 className="text-xl lg:text-2xl font-black text-black uppercase tracking-tighter text-balance">Request Specification Access</h1>
+          </div>
         </div>
       </motion.div>
 
-      {/* Right Side: Signup Form */}
-      <div className="flex-1 flex items-center justify-center p-8 md:p-16">
+      {/* RHS Section: Signup Form */}
+      <div className="flex-1 flex items-center justify-center p-6 lg:p-24 bg-white">
         <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="w-full max-w-md"
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          className="w-full max-w-sm"
         >
-          <div className="mb-12">
-            <h2 className="text-4xl font-black text-black uppercase tracking-tighter mb-2 text-center md:text-left">Register</h2>
-            <div className="h-1 w-12 bg-[#0D004C] mx-auto md:mx-0" />
+          <div className="mb-8 lg:mb-12">
+            <h2 className="text-3xl lg:text-4xl font-black text-black uppercase tracking-tighter mb-2">Create Account</h2>
+            <div className="h-1.5 w-16 bg-black" />
           </div>
 
-          <form onSubmit={handleSignup} className="space-y-6">
+          <form onSubmit={handleSignup} className="space-y-5 lg:space-y-6">
             {error && (
               <motion.div 
                 initial={{ opacity: 0 }}
@@ -97,9 +95,9 @@ export default function Signup() {
               </motion.div>
             )}
 
-            <div className="space-y-2">
+            <div className="space-y-2 lg:space-y-3">
               <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 flex items-center gap-2">
-                <EnvelopeIcon className="w-3 h-3" /> Professional Email
+                <EnvelopeIcon className="w-3 h-3" /> Email Address
               </label>
               <input
                 type="email"
@@ -107,59 +105,59 @@ export default function Signup() {
                 disabled={loading}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full border-b-2 border-gray-100 focus:border-black outline-none py-3 font-bold transition-all placeholder:text-gray-200 disabled:opacity-50"
-                placeholder="architect@studio.com"
+                className="w-full bg-gray-50 border-2 border-transparent focus:border-black focus:bg-white outline-none p-3 lg:p-4 font-bold transition-all text-sm"
+                placeholder="name@company.com"
               />
             </div>
 
-            <div className="grid md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 flex items-center gap-2">
-                  <LockClosedIcon className="w-3 h-3" /> Password
-                </label>
-                <input
-                  type="password"
-                  required
-                  disabled={loading}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full border-b-2 border-gray-100 focus:border-black outline-none py-3 font-bold transition-all disabled:opacity-50"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 flex items-center gap-2">
-                  <CheckBadgeIcon className="w-3 h-3" /> Confirm
-                </label>
-                <input
-                  type="password"
-                  required
-                  disabled={loading}
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="w-full border-b-2 border-gray-100 focus:border-black outline-none py-3 font-bold transition-all disabled:opacity-50"
-                />
-              </div>
+            <div className="space-y-2 lg:space-y-3">
+              <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 flex items-center gap-2">
+                <LockClosedIcon className="w-3 h-3" /> Password
+              </label>
+              <input
+                type="password"
+                required
+                disabled={loading}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full bg-gray-50 border-2 border-transparent focus:border-black focus:bg-white outline-none p-3 lg:p-4 font-bold transition-all text-sm"
+              />
             </div>
 
-            <div className="pt-6">
+            <div className="space-y-2 lg:space-y-3">
+              <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 flex items-center gap-2">
+                <CheckBadgeIcon className="w-3 h-3" /> Confirm Password
+              </label>
+              <input
+                type="password"
+                required
+                disabled={loading}
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                className="w-full bg-gray-50 border-2 border-transparent focus:border-black focus:bg-white outline-none p-3 lg:p-4 font-bold transition-all text-sm"
+              />
+            </div>
+
+            <div className="pt-2 lg:pt-4">
               <button
                 type="submit"
                 disabled={loading}
-                className={`w-full bg-black text-white py-5 font-black uppercase tracking-[0.3em] text-xs flex items-center justify-center gap-3 transition-all shadow-2xl group ${loading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-[#0D004C]'}`}
+                className={`w-full bg-black text-white p-4 lg:p-5 font-black uppercase tracking-[0.3em] text-[10px] flex items-center justify-center gap-3 transition-all shadow-[6px_6px_0px_0px_rgba(0,0,0,0.1)] active:translate-y-1 active:shadow-none ${loading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-[#0D004C]'}`}
               >
-                {loading ? "Initializing..." : "Register Account"}
-                {!loading && <UserPlusIcon className="w-4 h-4 group-hover:scale-110 transition-transform" />}
+                {loading ? "Initializing..." : "Register"}
+                {!loading && <UserPlusIcon className="w-4 h-4" />}
               </button>
             </div>
           </form>
 
-          <p className="mt-10 text-center text-sm font-medium text-gray-500">
-            Already registered?{" "}
-            <Link to="/login" className="text-black font-black uppercase tracking-tighter hover:text-[#0D004C] transition underline underline-offset-4">
-              Sign In
-            </Link>
-          </p>
+          <div className="mt-8 lg:mt-12 pt-6 lg:pt-8 border-t border-gray-100">
+            <p className="text-[10px] font-medium text-gray-500 uppercase tracking-widest text-center lg:text-left">
+              Already have an account?{" "}
+              <Link to="/login" className="text-black font-black hover:underline decoration-2 underline-offset-8 transition ml-2">
+                Sign In Now
+              </Link>
+            </p>
+          </div>
         </motion.div>
       </div>
     </div>
