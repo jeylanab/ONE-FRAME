@@ -4,23 +4,21 @@ import ProgressBar from "../components/ProgressBar";
 // Individual Step Components
 import StepIntro from "./StepIntro";
 import StepDesignType from "./StepDesignType";
-import StepGeometry from "./StepGeometry"; // Merged Shape + Measurements
-import StepFrame from "./StepFrame";       // Now includes Corners logic
-import StepFabric from "./StepFabric";
-import StepLightingAndDriver from "./StepLightingAndDriver"; // Merged Lighting + Controls
+import StepGeometry from "./StepGeometry"; 
+import StepFrame from "./StepFrame"; 
+import StepFabricAndLighting from "./StepFabricAndLighting"; // THE NEW MERGED COMPONENT
 import StepAcoustics from "./StepAcoustics";
-import StepLogistics from "./StepLogistics"; // Merged Prebuild + Freight
+import StepLogistics from "./StepLogistics"; 
 import QuoteSummary from "./QuoteSummary";
 
 const STEPS = [
   { key: "INTRO", label: "Intro", component: StepIntro },
   { key: "DESIGN", label: "Design Type", component: StepDesignType },
   { key: "GEOMETRY", label: "Shape & Size", component: StepGeometry }, 
-  { key: "FRAME", label: "Frame & Corners", component: StepFrame },
-  { key: "FABRIC", label: "Fabric & Finish", component: StepFabric },
-  { key: "ELECTRICAL", label: "Lighting & Controls", component: StepLightingAndDriver },
+  { key: "FRAME", label: "Structural", component: StepFrame },
+  { key: "FABRIC_LIGHT", label: "Graphics & Light", component: StepFabricAndLighting }, // Merged Step
   { key: "ACOUSTICS", label: "Acoustics", component: StepAcoustics },
-  { key: "LOGISTICS", label: "Delivery & Setup", component: StepLogistics },
+  { key: "LOGISTICS", label: "Logistics", component: StepLogistics },
   { key: "SUMMARY", label: "Final Quote", component: QuoteSummary },
 ];
 
@@ -33,8 +31,8 @@ export default function Quote() {
 
   /**
    * Global update function
-   * This maintains price continuity by allowing any step to inject 
-   * new data into the master 'quote' object without wiping previous steps.
+   * Using the spread operator (...prev) ensures that when we add
+   * Fabric data, we DON'T lose the Frame or Geometry data.
    */
   const updateQuote = (data) => {
     setQuote((prev) => ({
@@ -56,12 +54,11 @@ export default function Quote() {
         />
       </div>
 
-      {/* Main Container with dynamic height for different step content sizes */}
       <div className="bg-white rounded-[2rem] shadow-2xl shadow-indigo-100/50 border border-gray-100 min-h-[550px] p-6 md:p-12 transition-all duration-500 ease-in-out">
         <StepComponent
           quote={quote}
-          setQuote={setQuote}      // Initializer (StepIntro)
-          updateQuote={updateQuote}  // Continuity manager (All steps)
+          setQuote={setQuote}
+          updateQuote={updateQuote}
           onNext={nextStep}
           onBack={prevStep}
           setQuoteId={setQuoteId}
@@ -69,7 +66,6 @@ export default function Quote() {
         />
       </div>
 
-      {/* Footer / Status Indicator */}
       {quote && (
         <div className="mt-8 flex justify-center items-center gap-4">
           <div className="h-[1px] w-12 bg-gray-200"></div>
