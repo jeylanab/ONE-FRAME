@@ -23,12 +23,14 @@ export default function StepAcoustics({ quote, updateQuote, onNext, onBack }) {
   const handleSelect = (item) => {
     // Standardizing weight calculation (2.5kg per SQM if not in DB)
     const weightVal = parseFloat(item.weightPerSqm) || 2.5;
-    const acousticWeight = quote.stats.sqm * weightVal;
+    const sqm = quote.stats?.sqm || 0;
+    const acousticWeight = sqm * weightVal;
     
     updateQuote({ 
       acoustics: {
         ...item,
-        sell: parseFloat(item.sellSQM) || 0 // Matching your sellSQM field
+        name: item.description || "Acoustic Panel",
+        sell: parseFloat(item.sellSQM) || 0 
       },
       estimates: { 
         ...quote.estimates, 
@@ -39,8 +41,17 @@ export default function StepAcoustics({ quote, updateQuote, onNext, onBack }) {
 
   const isComplete = quote.acoustics?.id !== undefined;
   
-  // Running subtotal for this specific component
-  const acousticSubtotal = quote.stats.sqm * (quote.acoustics?.sell || 0);
+  // Safety check for stats
+  const sqm = quote.stats?.sqm || 0;
+  const acousticSubtotal = sqm * (quote.acoustics?.sell || 0);
+
+  // CRITICAL FIX: Safety guards (|| 0) to prevent "cannot read property of undefined"
+  const totalWeight = (
+    (quote.estimates?.frameWeight || 0) + 
+    (quote.estimates?.fabricWeight || 0) + 
+    (quote.estimates?.lightingWeight || 0) + 
+    (quote.estimates?.acousticWeight || 0)
+  );
 
   if (loading) return (
     <div className="p-20 text-center">
@@ -51,7 +62,6 @@ export default function StepAcoustics({ quote, updateQuote, onNext, onBack }) {
 
   return (
     <div className="max-w-6xl mx-auto space-y-12 pb-20">
-      {/* HEADER */}
       <header className="flex justify-between items-end border-l-4 border-black pl-6">
         <div>
           <h2 className="text-4xl font-black text-black uppercase tracking-tighter">Acoustic Treatment</h2>
@@ -93,18 +103,14 @@ export default function StepAcoustics({ quote, updateQuote, onNext, onBack }) {
                 <p className="text-[10px] font-bold text-gray-400 uppercase">{item.size} Thickness</p>
               </div>
               <div className="text-right">
-                <p className="text-[#0D004C] font-black text-2xl tracking-tighter">${item.sellSQM}</p>
+                <p className="text-indigo-900 font-black text-2xl tracking-tighter">${item.sellSQM}</p>
                 <p className="text-[9px] text-gray-400 font-black uppercase">per sqm</p>
               </div>
-            </div>
-            <div className="pt-4 border-t border-gray-100 mt-4">
-               <p className="text-[9px] text-gray-500 font-black uppercase tracking-widest">Performance: High NRC Rating</p>
             </div>
           </div>
         ))}
       </div>
 
-      {/* FOOTER SUMMARY BAR */}
       <footer className="sticky bottom-0 bg-white border-t-4 border-black p-8 flex flex-col md:flex-row justify-between items-center gap-6 shadow-[0_-10px_30px_rgba(0,0,0,0.05)]">
         <div className="flex gap-12">
           <div>
@@ -116,12 +122,7 @@ export default function StepAcoustics({ quote, updateQuote, onNext, onBack }) {
           <div className="hidden sm:block">
             <p className="text-[10px] uppercase font-black text-gray-400 tracking-widest mb-1">Total Est. Weight</p>
             <p className="text-3xl font-black text-black tracking-tighter">
-              {(
-                quote.estimates.frameWeight + 
-                quote.estimates.fabricWeight + 
-                (quote.estimates.lightingWeight || 0) + 
-                (quote.estimates.acousticWeight || 0)
-              ).toFixed(1)}kg
+              {totalWeight.toFixed(1)}kg
             </p>
           </div>
         </div>
