@@ -93,6 +93,19 @@ export default function Login() {
               Access System 
               <ArrowRightIcon className="w-4 h-4" />
             </button>
+            <div className="pt-6 text-center">
+  <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">
+    New here?{" "}
+    <button
+      type="button"
+      onClick={() => navigate("/signup")}
+      className="text-black hover:underline transition"
+    >
+      Create an account
+    </button>
+  </span>
+</div>
+
           </form>
 
           {/* Text below login box removed as requested by Jacq */}

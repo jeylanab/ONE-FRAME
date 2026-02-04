@@ -133,6 +133,19 @@ export default function Signup() {
               {loading ? "Initializing..." : "Register Account"}
               {!loading && <UserPlusIcon className="w-4 h-4" />}
             </button>
+            <div className="pt-6 text-center">
+  <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">
+    Already have an account?{" "}
+    <button
+      type="button"
+      onClick={() => navigate("/login")}
+      className="text-black hover:underline transition"
+    >
+      Sign In Here
+    </button>
+  </span>
+</div>
+
           </form>
           
         </motion.div>
