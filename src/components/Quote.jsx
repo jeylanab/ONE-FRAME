@@ -9,7 +9,6 @@ import {
 } from "@heroicons/react/24/outline";
 
 // Individual Step Components
-import StepIntro from "./StepIntro";
 import StepDesignType from "./StepDesignType";
 import StepGeometry from "./StepGeometry"; 
 import StepFrame from "./StepFrame"; 
@@ -19,7 +18,6 @@ import StepLogistics from "./StepLogistics";
 import QuoteSummary from "./QuoteSummary";
 
 const STEPS = [
-  { key: "INTRO", component: StepIntro },
   { key: "DESIGN", component: StepDesignType },
   { key: "GEOMETRY", component: StepGeometry }, 
   { key: "FRAME", component: StepFrame },

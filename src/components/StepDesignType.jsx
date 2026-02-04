@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { collection, getDocs, orderBy, query } from "firebase/firestore";
 import { db } from "../firebase/firebase";
-import { PaintBrushIcon, NoSymbolIcon, ArrowPathIcon } from "@heroicons/react/24/outline";
+import { PaintBrushIcon, NoSymbolIcon } from "@heroicons/react/24/outline";
 
 export default function StepDesignType({ quote, updateQuote, onNext, onBack }) {
   const [designOptions, setDesignOptions] = useState([]);
@@ -38,7 +38,7 @@ export default function StepDesignType({ quote, updateQuote, onNext, onBack }) {
     updateQuote({ 
       design: {
         id: design.id,
-        name: design.title || "N/A",
+        name: design.title || design.name || "N/A",
         sell: parseFloat(design.price) || 0
       } 
     });
@@ -66,22 +66,29 @@ export default function StepDesignType({ quote, updateQuote, onNext, onBack }) {
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* N/A Option - Brutalist Style */}
+      {/* Using grid-rows-[1fr] ensures that all items in a row 
+          expand to match the height of the tallest item.
+      */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch">
+        
+        {/* N/A Option */}
         <div 
           onClick={() => handleSelect({ id: "NA", title: "Not Required", price: 0 })}
-          className={`group p-8 border-2 cursor-pointer transition-all flex items-start gap-6 relative ${
+          className={`group p-8 border-2 cursor-pointer transition-all flex items-start gap-6 relative h-full ${
             quote?.design?.id === "NA" 
             ? "border-black bg-white shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]" 
             : "border-gray-100 hover:border-black"
           }`}
         >
-          <div className={`p-4 border-2 ${quote?.design?.id === "NA" ? "bg-black text-white border-black" : "bg-gray-50 text-gray-300 border-gray-100"}`}>
+          <div className={`p-4 border-2 shrink-0 ${quote?.design?.id === "NA" ? "bg-black text-white border-black" : "bg-gray-50 text-gray-300 border-gray-100"}`}>
             <NoSymbolIcon className="w-6 h-6" />
           </div>
           <div>
             <p className="font-black text-black text-xl uppercase tracking-tighter">Not Required</p>
             <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">Client providing own technical files</p>
+            <p className="text-[11px] text-gray-500 font-medium leading-relaxed uppercase mt-2">
+              Bypass internal design services. Requires production-ready vector or CAD assets.
+            </p>
           </div>
         </div>
 
@@ -90,13 +97,13 @@ export default function StepDesignType({ quote, updateQuote, onNext, onBack }) {
           <div 
             key={opt.id}
             onClick={() => handleSelect(opt)}
-            className={`group p-8 border-2 cursor-pointer transition-all flex items-start gap-6 relative ${
+            className={`group p-8 border-2 cursor-pointer transition-all flex items-start gap-6 relative h-full ${
               quote?.design?.id === opt.id 
               ? "border-black bg-white shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]" 
               : "border-gray-100 hover:border-black"
             }`}
           >
-            <div className={`p-4 border-2 ${quote?.design?.id === opt.id ? "bg-black text-white border-black" : "bg-gray-100 text-black border-black"}`}>
+            <div className={`p-4 border-2 shrink-0 ${quote?.design?.id === opt.id ? "bg-black text-white border-black" : "bg-gray-100 text-black border-black"}`}>
               <PaintBrushIcon className="w-6 h-6" />
             </div>
             <div className="flex-1">
@@ -104,7 +111,7 @@ export default function StepDesignType({ quote, updateQuote, onNext, onBack }) {
                 <p className="font-black text-black text-xl uppercase tracking-tighter">{opt.title}</p>
                 <p className="font-black text-[#0D004C] text-lg tracking-tighter">${parseFloat(opt.price).toLocaleString()}</p>
               </div>
-              <p className="text-[11px] text-gray-500 font-medium leading-relaxed uppercase mt-2 line-clamp-2">
+              <p className="text-[11px] text-gray-500 font-medium leading-relaxed uppercase mt-2">
                 {opt.description}
               </p>
             </div>
