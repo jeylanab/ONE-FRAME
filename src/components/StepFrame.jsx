@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
-import { collection, getDocs } from "firebase/firestore";
+import { collection, getDocs, doc, getDoc } from "firebase/firestore";
 import { db } from "../firebase/firebase";
 
 export default function StepFrame({ quote, updateQuote, onNext, onBack }) {
   const [data, setData] = useState({ frames: [], finishes: [] });
+  const [header, setHeader] = useState({ title: "", subtitle: "" }); // DYNAMIC WORDS STATE
   const [loading, setLoading] = useState(true);
 
   const defaultFinishes = [
@@ -15,9 +16,18 @@ export default function StepFrame({ quote, updateQuote, onNext, onBack }) {
   useEffect(() => {
     const fetchFrameData = async () => {
       try {
+        // 1. Fetch Dynamic Header (ID: step3_structural)
+        const headerRef = doc(db, "content", "step3_structural");
+        const headerSnap = await getDoc(headerRef);
+        if (headerSnap.exists()) {
+          setHeader(headerSnap.data());
+        }
+
+        // 2. Fetch Frames
         const frameSnap = await getDocs(collection(db, "frames"));
         const framesList = frameSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
+        // 3. Fetch Finishes
         const finishSnap = await getDocs(collection(db, "finishes"));
         let finishList = finishSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
@@ -63,9 +73,14 @@ export default function StepFrame({ quote, updateQuote, onNext, onBack }) {
 
   return (
     <div className="max-w-6xl mx-auto space-y-12 pb-20">
+      {/* UPDATED DYNAMIC HEADER */}
       <header className="border-l-4 border-black pl-6">
-        <h2 className="text-4xl font-black text-black uppercase tracking-tighter">Structural Specification</h2>
-        <p className="text-gray-500 text-sm font-medium uppercase tracking-wide">Select your frame profile or choose N/A for graphics-only orders.</p>
+        <h2 className="text-4xl font-black text-black uppercase tracking-tighter italic">
+          {header.title || "Structural Specification"}
+        </h2>
+        <p className="text-gray-500 text-sm font-medium uppercase tracking-wide">
+          {header.subtitle || "Select your frame profile or choose N/A for graphics-only orders."}
+        </p>
       </header>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">

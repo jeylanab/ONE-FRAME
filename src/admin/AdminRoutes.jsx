@@ -12,6 +12,8 @@ import AcousticsAdmin from "./collections/AcousticAdmin";
 import PrebuildAdmin from "./collections/PreBuildAdmin";
 import FreightAdmin from "./collections/FreightAdmin";
 import UsersAdmin from "./collections/UserAdmin";
+import WordAdmin from "./collections/WordAdmin";
+import AdminQuotes from "./collections/AdminQuotes";
 
 
 
@@ -29,7 +31,9 @@ export default function AdminRoutes() {
           <Route path="acoustics" element={<AcousticsAdmin />} />
           <Route path="prebuild" element={<PrebuildAdmin />} />
           <Route path="freight" element={<FreightAdmin />} />
-            <Route path="user" element={<UsersAdmin />} />
+      <Route path="user" element={<UsersAdmin />} />
+      <Route path="word" element={<WordAdmin />} />
+      <Route path="quotes" element={<AdminQuotes />} />
     </Routes>
   );
 }

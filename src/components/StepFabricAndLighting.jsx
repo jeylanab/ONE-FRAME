@@ -1,20 +1,29 @@
 import { useEffect, useState } from "react";
-import { collection, getDocs } from "firebase/firestore";
+import { collection, getDocs, doc, getDoc } from "firebase/firestore";
 import { db } from "../firebase/firebase";
 
 export default function StepFabricAndLighting({ quote, updateQuote, onNext, onBack }) {
   const [data, setData] = useState({ fabrics: [], lighting: [], controls: [] });
+  const [header, setHeader] = useState({ title: "", subtitle: "" }); // DYNAMIC WORDS STATE
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchAllData = async () => {
       try {
-        // EXACT MATCHING OF YOUR FIRESTORE COLLECTIONS
-        const [fabSnap, lightSnap, controlSnap] = await Promise.all([
+        // 1. Fetch Dynamic Header (ID: step4_graphics)
+        const headerRef = doc(db, "content", "step4_graphics");
+        
+        // 2. Promise.all to fetch everything in parallel without slowing down
+        const [fabSnap, lightSnap, controlSnap, headerSnap] = await Promise.all([
           getDocs(collection(db, "fabrics")),
           getDocs(collection(db, "lighting")),
-          getDocs(collection(db, "controls"))
+          getDocs(collection(db, "controls")),
+          getDoc(headerRef)
         ]);
+
+        if (headerSnap.exists()) {
+          setHeader(headerSnap.data());
+        }
 
         setData({
           fabrics: fabSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })),
@@ -45,7 +54,6 @@ export default function StepFabricAndLighting({ quote, updateQuote, onNext, onBa
   };
 
   const handleLightSelect = (light) => {
-    // If user picks "No Lighting", we also reset the control/driver to NA
     if (light.id === "NA") {
       updateQuote({ 
         lighting: { id: "NA", name: "Non-Illuminated", sell: 0 },
@@ -72,10 +80,8 @@ export default function StepFabricAndLighting({ quote, updateQuote, onNext, onBa
     });
   };
 
-  // VALIDATION: Logic requires Face Fabric, a Lighting choice, and a Driver choice
   const isComplete = quote.faceFabric?.id && quote.lighting?.id && quote.control?.id;
 
-  // CALCULATIONS
   const sqm = quote.stats?.sqm || 0;
   const faceCost = sqm * (quote.faceFabric?.sell || 0);
   const rearCost = sqm * (quote.rearFabric?.sell || 0);
@@ -96,9 +102,14 @@ export default function StepFabricAndLighting({ quote, updateQuote, onNext, onBa
 
   return (
     <div className="max-w-6xl mx-auto space-y-12 pb-20">
+      {/* UPDATED DYNAMIC HEADER */}
       <header className="border-l-4 border-black pl-6">
-        <h2 className="text-4xl font-black text-black uppercase tracking-tighter">Graphics & Electrical</h2>
-        <p className="text-gray-500 text-sm font-medium uppercase tracking-wide">Select your finishes and power configuration.</p>
+        <h2 className="text-4xl font-black text-black uppercase tracking-tighter italic">
+          {header.title || "Graphics & Electrical"}
+        </h2>
+        <p className="text-gray-500 text-sm font-medium uppercase tracking-wide">
+          {header.subtitle || "Select your finishes and power configuration."}
+        </p>
       </header>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-12 gap-y-16">
@@ -174,7 +185,6 @@ export default function StepFabricAndLighting({ quote, updateQuote, onNext, onBa
         </section>
       </div>
 
-      {/* FOOTER */}
       <footer className="sticky bottom-0 bg-white border-t-4 border-black p-8 flex flex-col md:flex-row justify-between items-center gap-6 z-10 shadow-2xl">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8 flex-1">
           <div>

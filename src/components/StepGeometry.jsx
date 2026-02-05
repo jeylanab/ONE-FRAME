@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { collection, getDocs } from "firebase/firestore";
+import { collection, getDocs, doc, getDoc } from "firebase/firestore";
 import { db } from "../firebase/firebase";
 import { SHAPE_FORMULAS, calculateStats } from "../data/geometryEngine";
 
@@ -7,18 +7,26 @@ export default function StepGeometry({ quote, updateQuote, onNext, onBack }) {
   const [localDims, setLocalDims] = useState(quote?.measurements || { a: "", b: "", c: "", d: "" });
   const [localShape, setLocalShape] = useState(quote?.shape || "");
   const [setupOptions, setSetupOptions] = useState([]);
-  const [cornerOptions, setCornerOptions] = useState([]); // Linked to Firestore 'corners'
+  const [cornerOptions, setCornerOptions] = useState([]); 
+  const [header, setHeader] = useState({ title: "", subtitle: "" }); // DYNAMIC WORDS STATE
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Fetch Setups (Shapes)
+        // 1. Fetch Dynamic Header Words (ID: step2_geometry)
+        const headerRef = doc(db, "content", "step2_geometry");
+        const headerSnap = await getDoc(headerRef);
+        if (headerSnap.exists()) {
+          setHeader(headerSnap.data());
+        }
+
+        // 2. Fetch Setups (Shapes)
         const setupSnap = await getDocs(collection(db, "setups"));
         const setups = setupSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         setSetupOptions(setups);
 
-        // Fetch Corners (New Requirement moved from Frame page)
+        // 3. Fetch Corners
         const cornerSnap = await getDocs(collection(db, "corners"));
         const corners = cornerSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         setCornerOptions(corners);
@@ -94,9 +102,14 @@ export default function StepGeometry({ quote, updateQuote, onNext, onBack }) {
 
   return (
     <div className="max-w-6xl mx-auto space-y-12 pb-20">
+      {/* UPDATED HEADER: Now pulls from Firestore */}
       <header className="border-l-4 border-black pl-6">
-        <h2 className="text-4xl font-black text-black uppercase tracking-tighter">Shape & Geometry</h2>
-        <p className="text-gray-500 text-sm font-medium uppercase tracking-wide">Select morphology and define dimensions.</p>
+        <h2 className="text-4xl font-black text-black uppercase tracking-tighter">
+          {header.title || "Shape & Geometry"}
+        </h2>
+        <p className="text-gray-500 text-sm font-medium uppercase tracking-wide">
+          {header.subtitle || "Select morphology and define dimensions."}
+        </p>
       </header>
 
       {/* SHAPE SELECTION */}
@@ -142,7 +155,7 @@ export default function StepGeometry({ quote, updateQuote, onNext, onBack }) {
                 </div>
             </div>
 
-            {/* CORNER SELECTION MOVED HERE */}
+            {/* CORNER SELECTION */}
             <div className="space-y-6">
                 <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block">3. Corner Detail / Finish</label>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -165,7 +178,7 @@ export default function StepGeometry({ quote, updateQuote, onNext, onBack }) {
         </div>
       )}
 
-      {/* CALCULATION SUMMARY BAR - Jacq's specific request for labels and white bg */}
+      {/* CALCULATION SUMMARY BAR */}
       {isValid && (
         <div className="grid grid-cols-1 md:grid-cols-3 border-4 border-black bg-white shadow-[12px_12px_0px_0px_rgba(0,0,0,0.05)]">
           <div className="p-8 border-b-4 md:border-b-0 md:border-r-4 border-black flex flex-col justify-center">

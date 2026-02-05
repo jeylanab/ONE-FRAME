@@ -1,22 +1,31 @@
 import { useEffect, useState } from "react";
-import { collection, getDocs, orderBy, query } from "firebase/firestore";
+import { collection, getDocs, orderBy, query, doc, getDoc } from "firebase/firestore";
 import { db } from "../firebase/firebase";
 import { PaintBrushIcon, NoSymbolIcon } from "@heroicons/react/24/outline";
 
 export default function StepDesignType({ quote, updateQuote, onNext, onBack }) {
   const [designOptions, setDesignOptions] = useState([]);
+  const [header, setHeader] = useState({ title: "", subtitle: "" }); // State for Dynamic Words
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    const fetchDesigns = async () => {
+    const fetchData = async () => {
       setLoading(true);
       try {
+        // 1. Fetch Dynamic Header Words from WordAdmin collection
+        const headerRef = doc(db, "content", "step1_design");
+        const headerSnap = await getDoc(headerRef);
+        if (headerSnap.exists()) {
+          setHeader(headerSnap.data());
+        }
+
+        // 2. Fetch Design Tiers
         const designRef = collection(db, "designTypes");
         const q = query(designRef, orderBy("price", "asc"));
-        const snap = await getDocs(q);
+        const designSnap = await getDocs(q);
         
-        const options = snap.docs.map(doc => ({
+        const options = designSnap.docs.map(doc => ({
           id: doc.id,
           ...doc.data()
         }));
@@ -25,13 +34,13 @@ export default function StepDesignType({ quote, updateQuote, onNext, onBack }) {
         setError(null);
       } catch (err) {
         console.error("Firestore Fetch Error:", err);
-        setError("System offline: Could not connect to Design Matrix.");
+        setError("System offline: Could not connect to Matrix.");
       } finally {
         setLoading(false);
       }
     };
 
-    fetchDesigns();
+    fetchData();
   }, []);
 
   const handleSelect = (design) => {
@@ -49,15 +58,20 @@ export default function StepDesignType({ quote, updateQuote, onNext, onBack }) {
   if (loading) return (
     <div className="p-20 text-center">
       <div className="animate-spin w-10 h-10 border-4 border-black border-t-transparent rounded-full mx-auto mb-4"></div>
-      <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Loading Design Tiers...</p>
+      <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Loading Specification Matrix...</p>
     </div>
   );
 
   return (
     <div className="max-w-6xl mx-auto space-y-12 pb-20">
+      {/* DYNAMIC HEADER - Fetched from WordAdmin */}
       <header className="border-l-4 border-black pl-6">
-        <h2 className="text-4xl font-black text-black uppercase tracking-tighter">Design & Concept</h2>
-        <p className="text-gray-500 text-sm font-medium uppercase tracking-wide">Select technical service level for project specification.</p>
+        <h2 className="text-4xl font-black text-black uppercase tracking-tighter italic">
+          {header.title || "Design & Concept"}
+        </h2>
+        <p className="text-gray-500 text-sm font-medium uppercase tracking-wide">
+          {header.subtitle || "Select technical service level for project specification."}
+        </p>
       </header>
 
       {error && (
@@ -66,11 +80,7 @@ export default function StepDesignType({ quote, updateQuote, onNext, onBack }) {
         </div>
       )}
 
-      {/* Using grid-rows-[1fr] ensures that all items in a row 
-          expand to match the height of the tallest item.
-      */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch">
-        
         {/* N/A Option */}
         <div 
           onClick={() => handleSelect({ id: "NA", title: "Not Required", price: 0 })}

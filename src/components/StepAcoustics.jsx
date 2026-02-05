@@ -1,15 +1,28 @@
 import { useEffect, useState } from "react";
-import { collection, getDocs } from "firebase/firestore";
+import { collection, getDocs, doc, getDoc } from "firebase/firestore";
 import { db } from "../firebase/firebase";
 
 export default function StepAcoustics({ quote, updateQuote, onNext, onBack }) {
   const [data, setData] = useState([]);
+  const [header, setHeader] = useState({ title: "", subtitle: "" }); // DYNAMIC WORDS STATE
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchAcousticData = async () => {
       try {
-        const snap = await getDocs(collection(db, "acoustics"));
+        // 1. Fetch Dynamic Header (ID: step5_acoustics)
+        const headerRef = doc(db, "content", "step5_acoustics");
+        
+        // 2. Parallel fetch for header and acoustics data
+        const [snap, headerSnap] = await Promise.all([
+          getDocs(collection(db, "acoustics")),
+          getDoc(headerRef)
+        ]);
+
+        if (headerSnap.exists()) {
+          setHeader(headerSnap.data());
+        }
+
         setData(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
       } catch (err) {
         console.error("Firestore Fetch Error:", err);
@@ -21,7 +34,6 @@ export default function StepAcoustics({ quote, updateQuote, onNext, onBack }) {
   }, []);
 
   const handleSelect = (item) => {
-    // Standardizing weight calculation (2.5kg per SQM if not in DB)
     const weightVal = parseFloat(item.weightPerSqm) || 2.5;
     const sqm = quote.stats?.sqm || 0;
     const acousticWeight = sqm * weightVal;
@@ -40,12 +52,9 @@ export default function StepAcoustics({ quote, updateQuote, onNext, onBack }) {
   };
 
   const isComplete = quote.acoustics?.id !== undefined;
-  
-  // Safety check for stats
   const sqm = quote.stats?.sqm || 0;
   const acousticSubtotal = sqm * (quote.acoustics?.sell || 0);
 
-  // CRITICAL FIX: Safety guards (|| 0) to prevent "cannot read property of undefined"
   const totalWeight = (
     (quote.estimates?.frameWeight || 0) + 
     (quote.estimates?.fabricWeight || 0) + 
@@ -62,11 +71,14 @@ export default function StepAcoustics({ quote, updateQuote, onNext, onBack }) {
 
   return (
     <div className="max-w-6xl mx-auto space-y-12 pb-20">
-      <header className="flex justify-between items-end border-l-4 border-black pl-6">
-        <div>
-          <h2 className="text-4xl font-black text-black uppercase tracking-tighter">Acoustic Treatment</h2>
-          <p className="text-gray-500 text-sm font-medium uppercase tracking-wide">Select sound-absorbent infill for {quote.frame?.code || "selected"} frame.</p>
-        </div>
+      {/* UPDATED DYNAMIC HEADER */}
+      <header className="border-l-4 border-black pl-6">
+        <h2 className="text-4xl font-black text-black uppercase tracking-tighter italic">
+          {header.title || "Acoustic Treatment"}
+        </h2>
+        <p className="text-gray-500 text-sm font-medium uppercase tracking-wide">
+          {header.subtitle || `Select sound-absorbent infill for ${quote.frame?.code || "selected"} frame.`}
+        </p>
       </header>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

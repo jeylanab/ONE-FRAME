@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
-import { collection, getDocs } from "firebase/firestore";
+import { collection, getDocs, doc, getDoc } from "firebase/firestore";
 import { db } from "../firebase/firebase";
 
 export default function StepLogistics({ quote, updateQuote, onNext, onBack }) {
   const [data, setData] = useState({ cities: [], freightMatrix: [] });
+  const [header, setHeader] = useState({ title: "", subtitle: "" }); // DYNAMIC WORDS STATE
   const [loading, setLoading] = useState(true);
 
   const totalWeight = (
@@ -28,9 +29,22 @@ export default function StepLogistics({ quote, updateQuote, onNext, onBack }) {
   useEffect(() => {
     const fetchLogisticsData = async () => {
       try {
-        const freightSnap = await getDocs(collection(db, "freight"));
+        // 1. Fetch Dynamic Header (ID: step6_logistics)
+        const headerRef = doc(db, "content", "step6_logistics");
+        
+        // 2. Fetch all logistics data in parallel
+        const [freightSnap, headerSnap] = await Promise.all([
+          getDocs(collection(db, "freight")),
+          getDoc(headerRef)
+        ]);
+
+        if (headerSnap.exists()) {
+          setHeader(headerSnap.data());
+        }
+
         const freightList = freightSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         const uniqueCities = [...new Set(freightList.map(f => f.location))].filter(Boolean).sort();
+        
         setData({ cities: uniqueCities, freightMatrix: freightList });
       } catch (error) {
         console.error("Freight Matrix Error:", error);
@@ -42,10 +56,7 @@ export default function StepLogistics({ quote, updateQuote, onNext, onBack }) {
   }, []);
 
   const handleCitySelect = (selectedLocation) => {
-    // POWERFUL MATCHING LOGIC
-    // We normalize both strings to lowercase and remove all white space for the comparison
     const normalize = (str) => str?.toLowerCase().replace(/\s+/g, '').trim() || "";
-    
     const targetTierNormalized = normalize(currentTier);
 
     const matchedFreight = data.freightMatrix.find(f => {
@@ -59,7 +70,6 @@ export default function StepLogistics({ quote, updateQuote, onNext, onBack }) {
         city: selectedLocation, 
         tier: currentTier, 
         sell: matchedFreight ? matchedFreight.sell : 0,
-        // Optional: Keep the description from the DB for the final quote
         description: matchedFreight?.description || "" 
       } 
     });
@@ -80,10 +90,15 @@ export default function StepLogistics({ quote, updateQuote, onNext, onBack }) {
 
   return (
     <div className="max-w-6xl mx-auto space-y-12 pb-20">
+      {/* UPDATED DYNAMIC HEADER */}
       <header className="border-l-4 border-black pl-6 flex justify-between items-end">
         <div>
-          <h2 className="text-4xl font-black text-black uppercase tracking-tighter">Logistics & Dispatch</h2>
-          <p className="text-gray-500 text-sm font-medium uppercase tracking-wide">Route optimization based on system morphology.</p>
+          <h2 className="text-4xl font-black text-black uppercase tracking-tighter italic">
+            {header.title || "Logistics & Dispatch"}
+          </h2>
+          <p className="text-gray-500 text-sm font-medium uppercase tracking-wide">
+            {header.subtitle || "Route optimization based on system morphology."}
+          </p>
         </div>
         <div className="text-right">
           <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Total Payload</p>

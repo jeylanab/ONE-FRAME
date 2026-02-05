@@ -26,6 +26,8 @@ export default function AdminLayout() {
     { name: "Prebuild", path: "prebuild", icon: ArchiveBoxIcon },
     { name: "Freight", path: "freight", icon: TruckIcon },
     { name: "User", path: "user", icon: TableCellsIcon },
+    { name: "Word", path: "word", icon: ClipboardDocumentCheckIcon },
+    { name: "Quotes", path: "quotes", icon: HomeIcon },
   ];
 
   // Helper to get current page title from path
