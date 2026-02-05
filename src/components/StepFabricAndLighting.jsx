@@ -4,16 +4,13 @@ import { db } from "../firebase/firebase";
 
 export default function StepFabricAndLighting({ quote, updateQuote, onNext, onBack }) {
   const [data, setData] = useState({ fabrics: [], lighting: [], controls: [] });
-  const [header, setHeader] = useState({ title: "", subtitle: "" }); // DYNAMIC WORDS STATE
+  const [header, setHeader] = useState({ title: "", subtitle: "" });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchAllData = async () => {
       try {
-        // 1. Fetch Dynamic Header (ID: step4_graphics)
         const headerRef = doc(db, "content", "step4_graphics");
-        
-        // 2. Promise.all to fetch everything in parallel without slowing down
         const [fabSnap, lightSnap, controlSnap, headerSnap] = await Promise.all([
           getDocs(collection(db, "fabrics")),
           getDocs(collection(db, "lighting")),
@@ -21,9 +18,7 @@ export default function StepFabricAndLighting({ quote, updateQuote, onNext, onBa
           getDoc(headerRef)
         ]);
 
-        if (headerSnap.exists()) {
-          setHeader(headerSnap.data());
-        }
+        if (headerSnap.exists()) setHeader(headerSnap.data());
 
         setData({
           fabrics: fabSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })),
@@ -40,15 +35,12 @@ export default function StepFabricAndLighting({ quote, updateQuote, onNext, onBa
   }, []);
 
   const handleFabricSelect = (fabric, side) => {
-    const weightPerSqm = parseFloat(fabric.weightSQM) || 0;
-    const sellPerSqm = parseFloat(fabric.sellSQM) || 0;
-    
     updateQuote({ 
       [side]: {
-        ...fabric,
+        id: fabric.id,
         name: fabric.description || fabric.name || "Custom Fabric",
-        sell: sellPerSqm,
-        weight: weightPerSqm
+        sell: parseFloat(fabric.sellSQM) || 0,
+        weight: parseFloat(fabric.weightSQM) || 0
       }
     });
   };
@@ -62,7 +54,7 @@ export default function StepFabricAndLighting({ quote, updateQuote, onNext, onBa
     } else {
       updateQuote({ 
         lighting: {
-          ...light,
+          id: light.id,
           name: light.description || light.name,
           sell: parseFloat(light.sellSQM || light.sell || 0)
         }
@@ -73,7 +65,7 @@ export default function StepFabricAndLighting({ quote, updateQuote, onNext, onBa
   const handleControlSelect = (control) => {
     updateQuote({ 
       control: {
-        ...control,
+        id: control.id,
         name: control.description || control.name,
         sell: parseFloat(control.sellSQM || control.sell || 0)
       } 
@@ -81,137 +73,127 @@ export default function StepFabricAndLighting({ quote, updateQuote, onNext, onBa
   };
 
   const isComplete = quote.faceFabric?.id && quote.lighting?.id && quote.control?.id;
-
   const sqm = quote.stats?.sqm || 0;
-  const faceCost = sqm * (quote.faceFabric?.sell || 0);
-  const rearCost = sqm * (quote.rearFabric?.sell || 0);
-  const lightingCost = sqm * (quote.lighting?.sell || 0);
-  const controlCost = (quote.control?.sell || 0);
-
-  const combinedWeight = (quote.estimates?.frameWeight || 0) + 
-                         (sqm * (quote.faceFabric?.weight || 0)) + 
-                         (sqm * (quote.rearFabric?.weight || 0)) + 
-                         (quote.lighting?.id !== "NA" ? sqm * 1.2 : 0);
 
   if (loading) return (
     <div className="p-20 text-center">
       <div className="animate-spin w-10 h-10 border-4 border-black border-t-transparent rounded-full mx-auto mb-4"></div>
-      <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Loading Media & Electrical...</p>
+      <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Loading Specifications...</p>
     </div>
   );
 
   return (
-    <div className="max-w-6xl mx-auto space-y-12 pb-20">
-      {/* UPDATED DYNAMIC HEADER */}
-      <header className="border-l-4 border-black pl-6">
-        <h2 className="text-4xl font-black text-black uppercase tracking-tighter italic">
-          {header.title || "Graphics & Electrical"}
-        </h2>
-        <p className="text-gray-500 text-sm font-medium uppercase tracking-wide">
-          {header.subtitle || "Select your finishes and power configuration."}
-        </p>
+    <div className="max-w-6xl mx-auto space-y-16 pb-20 px-4">
+      <header className="border-l-4 border-black pl-6 flex justify-between items-end">
+        <div>
+          <h2 className="text-4xl font-black text-black uppercase tracking-tighter italic leading-none">
+            {header.title || "Graphics & Electrical"}
+          </h2>
+          <p className="text-gray-500 text-sm font-medium uppercase tracking-wide mt-2">
+            {header.subtitle || "Configure media surfaces and illumination."}
+          </p>
+        </div>
+        <div className="hidden md:block text-right">
+          <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1">Total Area</p>
+          <p className="text-2xl font-black text-black leading-none uppercase">{sqm.toFixed(2)} SQM</p>
+        </div>
       </header>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-12 gap-y-16">
+      {/* PHASE 01: FABRICS */}
+      <div>
+      
         
-        {/* 1. FACE FABRIC */}
-        <section className="space-y-4">
-          <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em]">1. Face Fabric (Front)</label>
-          <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
-            {data.fabrics.map((f) => (
-              <div key={`face-${f.id}`} onClick={() => handleFabricSelect(f, "faceFabric")}
-                className={`p-4 border-2 cursor-pointer transition-all flex justify-between items-center ${quote.faceFabric?.id === f.id ? "border-black bg-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]" : "border-gray-100 hover:border-black"}`}>
-                <span className="font-black text-xs uppercase">{f.description || f.name}</span>
-                <span className="font-bold text-xs text-gray-400">${f.sellSQM}</span>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* 2. REAR FABRIC */}
-        <section className="space-y-4">
-          <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em]">2. Rear Fabric (Backing)</label>
-          <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
-            <div onClick={() => handleFabricSelect({ id: "NA", description: "No Rear Fabric", sellSQM: 0, weightSQM: 0 }, "rearFabric")}
-              className={`p-4 border-2 cursor-pointer transition-all ${quote.rearFabric?.id === "NA" ? "border-black bg-gray-50 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]" : "border-gray-100 text-gray-400"}`}>
-              <span className="font-black text-xs uppercase italic">N/A - Single Sided</span>
-            </div>
-            {data.fabrics.map((f) => (
-              <div key={`rear-${f.id}`} onClick={() => handleFabricSelect(f, "rearFabric")}
-                className={`p-4 border-2 cursor-pointer transition-all flex justify-between items-center ${quote.rearFabric?.id === f.id ? "border-black bg-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]" : "border-gray-100 hover:border-black"}`}>
-                <span className="font-black text-xs uppercase">{f.description || f.name}</span>
-                <span className="font-bold text-xs text-gray-400">${f.sellSQM}</span>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* 3. LIGHTING */}
-        <section className="space-y-4">
-          <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em]">3. LED Array</label>
-          <div className="space-y-3">
-            <div onClick={() => handleLightSelect({ id: "NA" })}
-              className={`p-4 border-2 cursor-pointer transition-all ${quote.lighting?.id === "NA" ? "border-black bg-gray-50 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]" : "border-gray-100 text-gray-400"}`}>
-              <span className="font-black text-xs uppercase italic">Non-Illuminated</span>
-            </div>
-            {data.lighting.map((l) => (
-              <div key={l.id} onClick={() => handleLightSelect(l)}
-                className={`p-4 border-2 cursor-pointer transition-all flex justify-between items-center ${quote.lighting?.id === l.id ? "border-black bg-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]" : "border-gray-100 hover:border-black"}`}>
-                <span className="font-black text-xs uppercase">{l.description || l.name}</span>
-                <span className="font-bold text-xs text-gray-400">${l.sellSQM}/sqm</span>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* 4. DRIVERS */}
-        <section className="space-y-4">
-          <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em]">4. Power Supply</label>
-          <div className="space-y-3">
-            {quote.lighting?.id === "NA" ? (
-              <div className="p-4 border-2 border-dashed border-gray-200 text-gray-400 flex items-center justify-center">
-                <span className="text-[10px] font-black uppercase tracking-widest">No Driver Needed for Non-Illuminated</span>
-              </div>
-            ) : (
-              data.controls.map((c) => (
-                <div key={c.id} onClick={() => handleControlSelect(c)}
-                  className={`p-4 border-2 cursor-pointer transition-all flex justify-between items-center ${quote.control?.id === c.id ? "border-black bg-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]" : "border-gray-100 hover:border-black"}`}>
-                  <span className="font-black text-xs uppercase">{c.description || c.name}</span>
-                  <span className="font-bold text-xs text-gray-400">${c.sellSQM}</span>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+          <section className="space-y-6">
+            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block italic underline decoration-2 underline-offset-4">01. Face Fabric (Front)</label>
+            <div className="grid grid-cols-2 gap-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+              {data.fabrics.map((f) => (
+                <div key={`face-${f.id}`} onClick={() => handleFabricSelect(f, "faceFabric")}
+                  className={`p-6 border-2 cursor-pointer transition-all flex flex-col justify-between h-40 ${quote.faceFabric?.id === f.id ? "border-black bg-white shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]" : "border-gray-100 hover:border-black text-gray-400"}`}>
+                  <p className="font-black text-xs uppercase leading-tight text-black">{f.description || f.name}</p>
+                  <p className="text-lg font-black text-black tracking-tighter">${parseFloat(f.sellSQM).toFixed(2)}<span className="text-[10px] ml-1 opacity-50 font-bold">/SQM</span></p>
                 </div>
-              ))
-            )}
-          </div>
-        </section>
+              ))}
+            </div>
+          </section>
+
+          <section className="space-y-6">
+            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block italic underline decoration-2 underline-offset-4">02. Rear Fabric (Backing)</label>
+            <div className="grid grid-cols-2 gap-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+              <div onClick={() => handleFabricSelect({ id: "NA", description: "No Rear Fabric", sellSQM: 0, weightSQM: 0 }, "rearFabric")}
+                className={`p-6 border-2 cursor-pointer transition-all flex flex-col justify-between h-40 ${quote.rearFabric?.id === "NA" ? "border-black bg-white shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]" : "border-gray-100 grayscale opacity-60"}`}>
+                <p className="font-black text-xs uppercase italic text-black leading-tight">Single Sided<br/>No Backing</p>
+                <p className="text-lg font-black text-black tracking-tighter">FREE</p>
+              </div>
+              {data.fabrics.map((f) => (
+                <div key={`rear-${f.id}`} onClick={() => handleFabricSelect(f, "rearFabric")}
+                  className={`p-6 border-2 cursor-pointer transition-all flex flex-col justify-between h-40 ${quote.rearFabric?.id === f.id ? "border-black bg-white shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]" : "border-gray-100 hover:border-black text-gray-400"}`}>
+                  <p className="font-black text-xs uppercase leading-tight text-black">{f.description || f.name}</p>
+                  <p className="text-lg font-black text-black tracking-tighter">${parseFloat(f.sellSQM).toFixed(2)}<span className="text-[10px] ml-1 opacity-50 font-bold">/SQM</span></p>
+                </div>
+              ))}
+            </div>
+          </section>
+        </div>
       </div>
 
-      <footer className="sticky bottom-0 bg-white border-t-4 border-black p-8 flex flex-col md:flex-row justify-between items-center gap-6 z-10 shadow-2xl">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-8 flex-1">
-          <div>
-            <p className="text-[9px] font-black text-gray-400 uppercase">Face Graphics</p>
-            <p className="text-xl font-black">${faceCost.toFixed(2)}</p>
-          </div>
-          <div>
-            <p className="text-[9px] font-black text-gray-400 uppercase">Rear Graphics</p>
-            <p className="text-xl font-black">${rearCost.toFixed(2)}</p>
-          </div>
-          <div>
-            <p className="text-[9px] font-black text-gray-400 uppercase">Power Subtotal</p>
-            <p className="text-xl font-black">${(lightingCost + controlCost).toFixed(2)}</p>
-          </div>
-          <div>
-            <p className="text-[9px] font-black text-indigo-500 uppercase">Ship Weight</p>
-            <p className="text-xl font-black text-indigo-600">{combinedWeight.toFixed(1)}kg</p>
-          </div>
+      {/* PHASE 02: ELECTRICAL */}
+      <div>
+        <div className="flex items-center gap-4 mb-8">
+           <div className="h-1 bg-black w-full opacity-20" />
         </div>
 
-        <div className="flex gap-4">
-          <button onClick={onBack} className="px-8 py-4 font-black uppercase text-[10px] border-2 border-black hover:bg-gray-50 transition">Back</button>
-          <button disabled={!isComplete} onClick={onNext}
-            className={`px-12 py-4 font-black uppercase text-[10px] transition-all ${isComplete ? "bg-black text-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:bg-[#0D004C]" : "bg-gray-100 text-gray-300"}`}>
-            Next: Acoustics
-          </button>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+          <section className="space-y-6">
+            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block italic underline decoration-2 underline-offset-4">03. Illumination System</label>
+            <div className="grid grid-cols-2 gap-4">
+              <div onClick={() => handleLightSelect({ id: "NA" })}
+                className={`p-6 border-2 cursor-pointer transition-all flex flex-col justify-between h-40 ${quote.lighting?.id === "NA" ? "border-black bg-white shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]" : "border-gray-100 grayscale opacity-60"}`}>
+                <p className="font-black text-xs uppercase italic text-black">Non-Illuminated</p>
+                <p className="text-lg font-black text-black tracking-tighter">$0.00</p>
+              </div>
+              {data.lighting.map((l) => (
+                <div key={l.id} onClick={() => handleLightSelect(l)}
+                  className={`p-6 border-2 cursor-pointer transition-all flex flex-col justify-between h-40 ${quote.lighting?.id === l.id ? "border-black bg-white shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]" : "border-gray-100 hover:border-black text-gray-400"}`}>
+                  <p className="font-black text-xs uppercase leading-tight text-black">{l.description || l.name}</p>
+                  <p className="text-lg font-black text-black tracking-tighter">${parseFloat(l.sellSQM).toFixed(2)}<span className="text-[10px] ml-1 opacity-50 font-bold">/SQM</span></p>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section className="space-y-6">
+            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block italic underline decoration-2 underline-offset-4">04. Power Supply / Driver</label>
+            <div className="grid grid-cols-2 gap-4">
+              {quote.lighting?.id === "NA" ? (
+                <div className="col-span-2 p-6 border-4 border-dashed border-gray-100 flex flex-col items-center justify-center h-40 opacity-50">
+                  <p className="text-[10px] font-black uppercase text-gray-300 tracking-widest text-center">Electrical Bypass Active<br/>No Driver Required</p>
+                </div>
+              ) : (
+                data.controls.map((c) => (
+                  <div key={c.id} onClick={() => handleControlSelect(c)}
+                    className={`p-6 border-2 cursor-pointer transition-all flex flex-col justify-between h-40 ${quote.control?.id === c.id ? "border-black bg-white shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]" : "border-gray-100 hover:border-black text-gray-400"}`}>
+                    <p className="font-black text-xs uppercase leading-tight text-black">{c.description || c.name}</p>
+                    <p className="text-lg font-black text-[#0D004C] tracking-tighter">+${parseFloat(c.sellSQM || c.sell).toFixed(2)}</p>
+                  </div>
+                ))
+              )}
+            </div>
+          </section>
         </div>
+      </div>
+
+      <footer className="sticky bottom-0 bg-white border-t-4 border-black p-8 flex justify-end items-center gap-4 z-30 shadow-[0_-10px_40px_rgba(0,0,0,0.1)]">
+        <button onClick={onBack} className="px-12 py-5 font-black uppercase text-[10px] border-2 border-black hover:bg-gray-50 transition">
+          Back
+        </button>
+        <button 
+          disabled={!isComplete} 
+          onClick={onNext}
+          className={`px-16 py-5 font-black uppercase text-[10px] tracking-widest transition-all ${isComplete ? "bg-black text-white shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:bg-[#0D004C]" : "bg-gray-100 text-gray-300 cursor-not-allowed"}`}
+        >
+          Next: Acoustics
+        </button>
       </footer>
     </div>
   );

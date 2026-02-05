@@ -121,24 +121,38 @@ export default function QuoteSummary({ quote, quoteId, onBack }) {
         </div>
       </div>
 
-      {/* INTERNAL USE: FRAME SPECS SECTION (REMOVED FROM PREVIOUS PAGES) */}
-      <div className="mt-20 pt-10 border-t-4 border-black border-dashed">
-        <div className="flex items-center gap-4 mb-8">
-          <h3 className="text-sm font-black uppercase bg-black text-white px-3 py-1 tracking-widest">Internal Frame Specs</h3>
-          <div className="flex-1 h-px bg-gray-200" />
-        </div>
+{/* INTERNAL USE: FRAME SPECS SECTION */}
+<div className="mt-20 pt-10 border-t-4 border-black border-dashed">
+  <div className="flex items-center gap-4 mb-8">
+    <h3 className="text-sm font-black uppercase bg-black text-white px-3 py-1 tracking-widest">Internal Frame Specs</h3>
+    <div className="flex-1 h-px bg-gray-200" />
+  </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-          <InternalMetric label="Extrusion" value={quote.frame?.name || "N/A"} />
-          <InternalMetric label="Profile Depth" value={quote.frame?.size || "N/A"} />
-          <InternalMetric label="Total Perimeter" value={`${quote.stats?.lm.toFixed(2)} LM`} />
-          <InternalMetric label="Total Area" value={`${quote.stats?.sqm.toFixed(2)} SQM`} />
-          <InternalMetric label="Dimensions (AxB)" value={`${quote.measurements?.a} x ${quote.measurements?.b} mm`} />
-          <InternalMetric label="Est. Frame Weight" value={`${(quote.estimates?.frameWeight || 0).toFixed(1)} kg`} />
-          <InternalMetric label="Est. Total Weight" value={`${(allItems.reduce((acc, item) => acc + (quote.estimates?.[item.label] || 0), 0) + 5).toFixed(1)} kg`} />
-          <InternalMetric label="Shape Code" value={quote.shape || "RECT"} />
-        </div>
-      </div>
+  <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+    <InternalMetric label="Extrusion" value={quote.frame?.name || "N/A"} />
+    <InternalMetric label="Profile Depth" value={quote.frame?.size || "N/A"} />
+    <InternalMetric label="Total Perimeter" value={`${quote.stats?.lm?.toFixed(2) || 0} LM`} />
+    <InternalMetric label="Total Area" value={`${quote.stats?.sqm?.toFixed(2) || 0} SQM`} />
+    <InternalMetric label="Dimensions (AxB)" value={`${quote.measurements?.a} x ${quote.measurements?.b} mm`} />
+    
+    {/* FIXED CALCULATION BELOW */}
+    <InternalMetric 
+      label="Est. Frame Weight" 
+      value={`${((quote.stats?.lm || 0) * (quote.frame?.weight || 0)).toFixed(1)} kg`} 
+    />
+    
+    <InternalMetric 
+      label="Est. Total Weight" 
+      value={`${(
+        ((quote.stats?.lm || 0) * (quote.frame?.weight || 0)) + // Frame
+        ((quote.stats?.sqm || 0) * (quote.faceFabric?.weight || 0)) + // Fabric
+        ((quote.lighting?.id !== "NA") ? (quote.stats?.sqm || 0) * 1.2 : 0) // Lighting overhead
+      ).toFixed(1)} kg`} 
+    />
+    
+    <InternalMetric label="Shape Code" value={quote.shape || "RECT"} />
+  </div>
+</div>
 
       {/* FOOTER ACTIONS (ONLY BACK BUTTON REMAINS) */}
       <div className="mt-12">

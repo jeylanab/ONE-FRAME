@@ -4,8 +4,11 @@ import { db } from "../firebase/firebase";
 
 export default function StepLogistics({ quote, updateQuote, onNext, onBack }) {
   const [data, setData] = useState({ cities: [], freightMatrix: [] });
-  const [header, setHeader] = useState({ title: "", subtitle: "" }); // DYNAMIC WORDS STATE
+  const [header, setHeader] = useState({ title: "", subtitle: "" });
   const [loading, setLoading] = useState(true);
+
+  // Helper for exact tier matching against Firestore strings
+  const normalize = (str) => str?.toLowerCase().replace(/\s+/g, '').trim() || "";
 
   const totalWeight = (
     (quote.estimates?.frameWeight || 0) +
@@ -29,18 +32,13 @@ export default function StepLogistics({ quote, updateQuote, onNext, onBack }) {
   useEffect(() => {
     const fetchLogisticsData = async () => {
       try {
-        // 1. Fetch Dynamic Header (ID: step6_logistics)
         const headerRef = doc(db, "content", "step6_logistics");
-        
-        // 2. Fetch all logistics data in parallel
         const [freightSnap, headerSnap] = await Promise.all([
           getDocs(collection(db, "freight")),
           getDoc(headerRef)
         ]);
 
-        if (headerSnap.exists()) {
-          setHeader(headerSnap.data());
-        }
+        if (headerSnap.exists()) setHeader(headerSnap.data());
 
         const freightList = freightSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         const uniqueCities = [...new Set(freightList.map(f => f.location))].filter(Boolean).sort();
@@ -56,21 +54,19 @@ export default function StepLogistics({ quote, updateQuote, onNext, onBack }) {
   }, []);
 
   const handleCitySelect = (selectedLocation) => {
-    const normalize = (str) => str?.toLowerCase().replace(/\s+/g, '').trim() || "";
     const targetTierNormalized = normalize(currentTier);
 
     const matchedFreight = data.freightMatrix.find(f => {
-      const isLocationMatch = f.location === selectedLocation;
-      const isTierMatch = normalize(f.tier) === targetTierNormalized;
-      return isLocationMatch && isTierMatch;
+      return f.location === selectedLocation && normalize(f.tier) === targetTierNormalized;
     });
 
     updateQuote({ 
       destination: { 
         city: selectedLocation, 
         tier: currentTier, 
-        sell: matchedFreight ? matchedFreight.sell : 0,
-        description: matchedFreight?.description || "" 
+        sell: matchedFreight ? parseFloat(matchedFreight.sell) : 0,
+        description: matchedFreight?.description || "",
+        boxSize: matchedFreight?.boxSize || ""
       } 
     });
   };
@@ -90,94 +86,98 @@ export default function StepLogistics({ quote, updateQuote, onNext, onBack }) {
 
   return (
     <div className="max-w-6xl mx-auto space-y-12 pb-20">
-      {/* UPDATED DYNAMIC HEADER */}
       <header className="border-l-4 border-black pl-6 flex justify-between items-end">
         <div>
-          <h2 className="text-4xl font-black text-black uppercase tracking-tighter italic">
+          <h2 className="text-4xl font-black text-black uppercase tracking-tighter italic leading-none">
             {header.title || "Logistics & Dispatch"}
           </h2>
-          <p className="text-gray-500 text-sm font-medium uppercase tracking-wide">
+          <p className="text-gray-500 text-sm font-medium uppercase tracking-wide mt-2">
             {header.subtitle || "Route optimization based on system morphology."}
           </p>
         </div>
-        <div className="text-right">
-          <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Total Payload</p>
-          <p className="text-2xl font-black text-black">{totalWeight.toFixed(1)} kg</p>
+        <div className="text-right border-r-4 border-black pr-6">
+          <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Calculated Payload</p>
+          <p className="text-3xl font-black text-black tracking-tighter">{totalWeight.toFixed(1)}kg</p>
         </div>
       </header>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-        <div className="space-y-6">
-          <div className="flex items-center gap-4">
-            <span className="bg-black text-white w-8 h-8 flex items-center justify-center font-black text-xs italic">01</span>
-            <label className="text-[10px] font-black text-black uppercase tracking-[0.3em]">Quality Assurance</label>
-          </div>
-          
-          <div className={`p-8 border-4 transition-all ${quote.prebuild?.selected ? "border-black bg-white shadow-[12px_12px_0_0_rgba(0,0,0,1)]" : "border-gray-100 bg-gray-50"}`}>
-            <p className="text-xs font-black uppercase mb-2">Factory Pre-Assembly</p>
-            <p className="text-[10px] text-gray-500 uppercase leading-relaxed mb-6 font-bold">
-              Full factory build and quality inspection prior to dispatch.
-            </p>
-            <div className="grid grid-cols-2 gap-4">
-              <button
-                onClick={() => handlePrebuildToggle(true)}
-                className={`p-4 font-black uppercase text-[10px] border-2 transition-all ${quote.prebuild?.selected === true ? "bg-black text-white border-black" : "bg-white border-gray-200 text-gray-400 hover:border-black"}`}
-              >
-                Include (+$249)
-              </button>
-              <button
-                onClick={() => handlePrebuildToggle(false)}
-                className={`p-4 font-black uppercase text-[10px] border-2 transition-all ${quote.prebuild?.selected === false ? "bg-black text-white border-black" : "bg-white border-gray-200 text-gray-400 hover:border-black"}`}
-              >
-                Decline ($0)
-              </button>
+        {/* 01. QUALITY ASSURANCE */}
+        <section className="space-y-6">
+          <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block underline decoration-2 underline-offset-4 italic">01. Quality Assurance</label>
+          <div className="grid grid-cols-2 gap-4">
+            <div 
+              onClick={() => handlePrebuildToggle(true)}
+              className={`p-6 border-2 transition-all cursor-pointer flex flex-col justify-between h-40 ${
+                quote.prebuild?.selected === true 
+                ? "border-black bg-white shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]" 
+                : "border-gray-100 hover:border-black text-gray-400"
+              }`}
+            >
+              <div>
+                <p className="font-black text-sm uppercase tracking-tighter text-black">Include Pre-Assembly</p>
+                <p className="text-[9px] font-bold text-gray-400 uppercase mt-1">Recommended</p>
+              </div>
+              <p className="text-lg font-black text-black tracking-tighter">+$249.00</p>
+            </div>
+
+            <div 
+              onClick={() => handlePrebuildToggle(false)}
+              className={`p-6 border-2 transition-all cursor-pointer flex flex-col justify-between h-40 ${
+                quote.prebuild?.selected === false 
+                ? "border-black bg-white shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]" 
+                : "border-gray-100 hover:border-black text-gray-400"
+              }`}
+            >
+              <div>
+                <p className="font-black text-sm uppercase tracking-tighter text-black">Decline QA</p>
+                <p className="text-[9px] font-bold text-gray-400 uppercase mt-1">Direct Dispatch</p>
+              </div>
+              <p className="text-lg font-black text-black tracking-tighter">$0.00</p>
             </div>
           </div>
-        </div>
+        </section>
 
-        <div className="space-y-6">
-          <div className="flex items-center gap-4">
-            <span className="bg-black text-white w-8 h-8 flex items-center justify-center font-black text-xs italic">02</span>
-            <label className="text-[10px] font-black text-black uppercase tracking-[0.3em]">Freight Routing</label>
-          </div>
-
+        {/* 02. FREIGHT ROUTING */}
+        <section className="space-y-6">
+          <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block underline decoration-2 underline-offset-4 italic">02. Freight Routing</label>
           <div className="space-y-4">
-            <select 
-              className="w-full p-6 font-black uppercase text-sm border-4 border-black focus:shadow-[8px_8px_0_0_rgba(13,0,76,1)] outline-none bg-white appearance-none cursor-pointer"
-              value={quote.destination?.city || ""}
-              onChange={(e) => handleCitySelect(e.target.value)}
-            >
-              <option value="">-- Select Destination --</option>
-              {data.cities.map(city => <option key={city} value={city}>{city}</option>)}
-            </select>
+            <div className="relative">
+              <select 
+                className="w-full p-6 font-black uppercase text-sm border-2 border-black focus:shadow-[8px_8px_0_0_rgba(13,0,76,1)] outline-none bg-white appearance-none cursor-pointer"
+                value={quote.destination?.city || ""}
+                onChange={(e) => handleCitySelect(e.target.value)}
+              >
+                <option value="">-- Select Destination --</option>
+                {data.cities.map(city => <option key={city} value={city}>{city}</option>)}
+              </select>
+              <div className="absolute right-6 top-1/2 -translate-y-1/2 pointer-events-none font-black text-xs">▼</div>
+            </div>
 
             {quote.destination?.city && (
-              <div className="p-8 border-4 border-black bg-white shadow-[12px_12px_0_0_rgba(0,0,0,1)] relative overflow-hidden">
-                <div className="absolute top-0 right-0 bg-yellow-400 px-3 py-1 text-[9px] font-black uppercase tracking-widest">Live Rate</div>
+              <div className="p-8 border-2 border-black bg-white shadow-[12px_12px_0_0_rgba(0,0,0,1)] relative overflow-hidden">
+                <div className="absolute top-0 right-0 bg-yellow-400 px-3 py-1 text-[9px] font-black uppercase tracking-widest border-l-2 border-b-2 border-black">Live Rate</div>
                 <div className="flex justify-between items-center">
                   <div>
-                    <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Logistics Tier</p>
-                    <p className="text-xl font-black text-black uppercase tracking-tighter leading-none">{currentTier}</p>
-                    <p className="text-[9px] font-bold text-indigo-600 mt-2 uppercase">{quote.destination.city}</p>
-                    {quote.destination.description && (
-                       <p className="text-[8px] text-gray-400 mt-1 max-w-[200px] uppercase">{quote.destination.description}</p>
-                    )}
+                    <p className="text-[9px] font-black text-indigo-600 uppercase tracking-widest mb-1">Tier: {currentTier}</p>
+                    <p className="text-2xl font-black text-black uppercase tracking-tighter leading-none">{quote.destination.city}</p>
+                    <p className="text-[9px] font-bold text-gray-400 mt-3 uppercase tracking-tight">Box: {quote.destination.boxSize || "Standard Dimensions"}</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-4xl font-black text-[#0D004C] tracking-tighter">${quote.destination.sell}</p>
-                    <p className="text-[8px] font-black text-gray-400 uppercase">Inc. Fuel Surcharge</p>
+                    <p className="text-5xl font-black text-[#0D004C] tracking-tighter italic leading-none">${quote.destination.sell.toFixed(2)}</p>
+                    <p className="text-[8px] font-black text-gray-400 uppercase mt-2">Inc. Fuel Surcharge</p>
                   </div>
                 </div>
               </div>
             )}
           </div>
-        </div>
+        </section>
       </div>
 
-      <footer className="sticky bottom-0 bg-white border-t-4 border-black p-8 flex flex-col md:flex-row justify-between items-center gap-6 shadow-[0_-10px_40px_rgba(0,0,0,0.1)] z-10">
+      <footer className="sticky bottom-0 bg-white border-t-4 border-black p-8 flex flex-col md:flex-row justify-between items-center gap-6 shadow-[0_-10px_40px_rgba(0,0,0,0.1)] z-30">
         <div>
-          <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-1">Total Logistics & QA</p>
-          <p className="text-4xl font-black text-black tracking-tighter">
+          <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Total Logistics & QA</p>
+          <p className="text-4xl font-black text-black tracking-tighter leading-none">
             ${((quote.prebuild?.sell || 0) + (quote.destination?.sell || 0)).toFixed(2)}
           </p>
         </div>

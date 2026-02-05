@@ -4,16 +4,13 @@ import { db } from "../firebase/firebase";
 
 export default function StepAcoustics({ quote, updateQuote, onNext, onBack }) {
   const [data, setData] = useState([]);
-  const [header, setHeader] = useState({ title: "", subtitle: "" }); // DYNAMIC WORDS STATE
+  const [header, setHeader] = useState({ title: "", subtitle: "" });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchAcousticData = async () => {
       try {
-        // 1. Fetch Dynamic Header (ID: step5_acoustics)
         const headerRef = doc(db, "content", "step5_acoustics");
-        
-        // 2. Parallel fetch for header and acoustics data
         const [snap, headerSnap] = await Promise.all([
           getDocs(collection(db, "acoustics")),
           getDoc(headerRef)
@@ -52,15 +49,6 @@ export default function StepAcoustics({ quote, updateQuote, onNext, onBack }) {
   };
 
   const isComplete = quote.acoustics?.id !== undefined;
-  const sqm = quote.stats?.sqm || 0;
-  const acousticSubtotal = sqm * (quote.acoustics?.sell || 0);
-
-  const totalWeight = (
-    (quote.estimates?.frameWeight || 0) + 
-    (quote.estimates?.fabricWeight || 0) + 
-    (quote.estimates?.lightingWeight || 0) + 
-    (quote.estimates?.acousticWeight || 0)
-  );
 
   if (loading) return (
     <div className="p-20 text-center">
@@ -71,7 +59,6 @@ export default function StepAcoustics({ quote, updateQuote, onNext, onBack }) {
 
   return (
     <div className="max-w-6xl mx-auto space-y-12 pb-20">
-      {/* UPDATED DYNAMIC HEADER */}
       <header className="border-l-4 border-black pl-6">
         <h2 className="text-4xl font-black text-black uppercase tracking-tighter italic">
           {header.title || "Acoustic Treatment"}
@@ -123,38 +110,25 @@ export default function StepAcoustics({ quote, updateQuote, onNext, onBack }) {
         ))}
       </div>
 
-      <footer className="sticky bottom-0 bg-white border-t-4 border-black p-8 flex flex-col md:flex-row justify-between items-center gap-6 shadow-[0_-10px_30px_rgba(0,0,0,0.05)]">
-        <div className="flex gap-12">
-          <div>
-            <p className="text-[10px] uppercase font-black text-gray-400 tracking-widest mb-1">Acoustics Subtotal</p>
-            <p className="text-3xl font-black text-black tracking-tighter">
-              ${acousticSubtotal.toFixed(2)}
-            </p>
-          </div>
-          <div className="hidden sm:block">
-            <p className="text-[10px] uppercase font-black text-gray-400 tracking-widest mb-1">Total Est. Weight</p>
-            <p className="text-3xl font-black text-black tracking-tighter">
-              {totalWeight.toFixed(1)}kg
-            </p>
-          </div>
-        </div>
-
-        <div className="flex gap-4 w-full md:w-auto">
-          <button onClick={onBack} className="px-10 py-4 font-black uppercase text-[10px] tracking-widest border-2 border-black hover:bg-gray-50 transition">
-            Back
-          </button>
-          <button 
-            disabled={!isComplete}
-            onClick={onNext}
-            className={`px-12 py-4 font-black uppercase text-[10px] tracking-widest transition-all ${
-              isComplete 
-              ? "bg-black text-white hover:bg-[#0D004C] shadow-[4px_4px_0px_0px_rgba(13,0,76,1)]" 
-              : "bg-gray-100 text-gray-300 cursor-not-allowed"
-            }`}
-          >
-            Go to Logistics
-          </button>
-        </div>
+      {/* FOOTER: NAVIGATION ONLY */}
+      <footer className="sticky bottom-0 bg-white border-t-4 border-black p-8 flex justify-end items-center gap-4 z-30 shadow-[0_-10px_40px_rgba(0,0,0,0.1)]">
+        <button 
+          onClick={onBack} 
+          className="px-12 py-5 font-black uppercase text-[10px] border-2 border-black hover:bg-gray-50 transition"
+        >
+          Back
+        </button>
+        <button 
+          disabled={!isComplete} 
+          onClick={onNext}
+          className={`px-16 py-5 font-black uppercase text-[10px] tracking-widest transition-all ${
+            isComplete 
+            ? "bg-black text-white shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:bg-[#0D004C]" 
+            : "bg-gray-100 text-gray-300 cursor-not-allowed"
+          }`}
+        >
+          Go to Logistics
+        </button>
       </footer>
     </div>
   );
