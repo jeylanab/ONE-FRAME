@@ -1,10 +1,9 @@
 import { useState, useEffect } from "react";
-import { doc, getDoc, setDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "../../firebase/firebase";
-import { CloudArrowUpIcon, CheckCircleIcon, DocumentTextIcon } from "@heroicons/react/24/outline";
+import { DocumentTextIcon } from "@heroicons/react/24/outline";
 
 export default function WordAdmin() {
-  // Your 7 Steps defined with stable IDs for Firestore
   const steps = [
     { id: "step1_design", label: "01. Design & Concept" },
     { id: "step2_geometry", label: "02. Shape & Geometry" },
@@ -20,7 +19,6 @@ export default function WordAdmin() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
 
-  // Load existing content from Firestore when step selection changes
   useEffect(() => {
     const loadContent = async () => {
       const docRef = doc(db, "content", selectedStep);
@@ -40,10 +38,10 @@ export default function WordAdmin() {
       await setDoc(doc(db, "content", selectedStep), {
         title: form.title,
         subtitle: form.subtitle,
-        updatedAt: new Date()
+        updatedAt: serverTimestamp() // Using serverTimestamp for consistency
       }, { merge: true });
       
-      setMessage("Database Synced Successfully");
+      setMessage("✅ Database Synced Successfully");
       setTimeout(() => setMessage(""), 3000);
     } catch (err) {
       console.error(err);
@@ -54,78 +52,78 @@ export default function WordAdmin() {
   };
 
   return (
-    <div className="max-w-5xl mx-auto space-y-8">
-      <header className="flex items-center gap-4 border-b border-gray-100 pb-6">
-        <div className="p-3 bg-indigo-600 rounded-2xl text-white shadow-lg shadow-indigo-100">
-          <DocumentTextIcon className="w-6 h-6" />
-        </div>
-        <div>
-          <h2 className="text-2xl font-black text-gray-900 tracking-tight">System Word Manager</h2>
-          <p className="text-sm text-gray-500 font-medium">Global Header Control for all 07 Configuration Steps</p>
-        </div>
-      </header>
+    <div className="max-w-7xl mx-auto p-6">
+      {/* Header aligned with other Admin pages */}
+      <h1 className="text-2xl font-bold mb-6 text-[#0D004C]">System Word Manager</h1>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Step Selector Panel */}
-        <div className="space-y-3">
-          <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Select Logic Step</label>
-          <div className="flex flex-col gap-2">
-            {steps.map((s) => (
-              <button
-                key={s.id}
-                onClick={() => setSelectedStep(s.id)}
-                className={`w-full p-4 text-left rounded-2xl border-2 transition-all font-bold text-xs uppercase tracking-tight ${
-                  selectedStep === s.id 
-                  ? "border-indigo-600 bg-indigo-50 text-indigo-700 shadow-sm" 
-                  : "border-gray-50 text-gray-400 hover:border-indigo-200 bg-white"
-                }`}
-              >
-                {s.label}
-              </button>
-            ))}
-          </div>
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+        
+        {/* Sidebar - Step Selector */}
+        <div className="md:col-span-1 space-y-2">
+          <p className="text-xs font-bold text-gray-500 uppercase mb-3">Logic Steps</p>
+          {steps.map((s) => (
+            <button
+              key={s.id}
+              onClick={() => setSelectedStep(s.id)}
+              className={`w-full p-3 text-left rounded-lg border transition-all text-sm font-semibold ${
+                selectedStep === s.id 
+                ? "border-[#0D004C] bg-[#0D004C] text-white shadow-md" 
+                : "border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
+              }`}
+            >
+              {s.label}
+            </button>
+          ))}
         </div>
 
-        {/* Editing Panel */}
-        <div className="lg:col-span-2 bg-white rounded-3xl border border-gray-100 shadow-xl p-8 self-start">
-          <div className="space-y-6">
-            <div className="space-y-2">
-              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Main Header Title</label>
-              <input 
-                value={form.title}
-                onChange={(e) => setForm({...form, title: e.target.value})}
-                placeholder="e.g. Design & Concept"
-                className="w-full p-5 bg-gray-50 border-2 border-transparent focus:border-indigo-600 focus:bg-white rounded-2xl outline-none font-black text-2xl transition-all text-gray-900 shadow-inner"
-              />
-            </div>
+        {/* Form Panel - Matches Lighting/Prebuild Container Style */}
+        <div className="md:col-span-3">
+          <div className="bg-white p-6 rounded-xl shadow border-t-4 border-[#0D004C]">
+            <h2 className="text-lg font-semibold mb-6 text-gray-700 flex items-center gap-2">
+              <DocumentTextIcon className="w-5 h-5 text-[#3D85C6]" />
+              Editing: {steps.find(s => s.id === selectedStep)?.label}
+            </h2>
 
-            <div className="space-y-2">
-              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Instructional Subtitle</label>
-              <textarea 
-                rows="4"
-                value={form.subtitle}
-                onChange={(e) => setForm({...form, subtitle: e.target.value})}
-                placeholder="Describe the objective for this step..."
-                className="w-full p-5 bg-gray-50 border-2 border-transparent focus:border-indigo-600 focus:bg-white rounded-2xl outline-none text-gray-600 font-medium transition-all shadow-inner leading-relaxed"
-              />
-            </div>
-
-            <div className="flex items-center justify-between pt-4">
-              <div className="flex items-center gap-2">
-                {message && <CheckCircleIcon className="w-5 h-5 text-green-500 animate-pulse" />}
-                <span className="text-[10px] font-black text-green-600 uppercase tracking-widest">{message}</span>
+            <div className="space-y-5">
+              <div className="flex flex-col gap-2">
+                <label className="text-xs font-bold text-gray-400 uppercase">Main Header Title</label>
+                <input 
+                  value={form.title}
+                  onChange={(e) => setForm({...form, title: e.target.value})}
+                  placeholder="e.g. Design & Concept"
+                  className="w-full p-3 border rounded focus:ring-2 focus:ring-[#3D85C6] outline-none transition-all text-[#0D004C] font-bold text-lg"
+                />
               </div>
-              
-              <button 
-                onClick={handlePush}
-                disabled={loading}
-                className="flex items-center gap-3 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-200 text-white px-12 py-4 rounded-2xl font-black uppercase text-[11px] tracking-widest transition-all shadow-xl shadow-indigo-100"
-              >
-                <CloudArrowUpIcon className="w-5 h-5" />
-                {loading ? "Pushing Data..." : "Update Live Site"}
-              </button>
+
+              <div className="flex flex-col gap-2">
+                <label className="text-xs font-bold text-gray-400 uppercase">Instructional Subtitle</label>
+                <textarea 
+                  rows="4"
+                  value={form.subtitle}
+                  onChange={(e) => setForm({...form, subtitle: e.target.value})}
+                  placeholder="Describe the objective for this step..."
+                  className="w-full p-3 border rounded focus:ring-2 focus:ring-[#3D85C6] outline-none transition-all text-gray-600 text-sm leading-relaxed"
+                />
+              </div>
+
+              <div className="flex items-center justify-between pt-4 border-t">
+                <span className="text-sm font-bold text-green-600">{message}</span>
+                
+                <button 
+                  onClick={handlePush}
+                  disabled={loading}
+                  className="px-8 py-3 bg-[#0D004C] text-white rounded font-bold hover:bg-opacity-90 transition-all disabled:bg-gray-300"
+                >
+                  {loading ? "Saving Changes..." : "Update Live Site"}
+                </button>
+              </div>
             </div>
           </div>
+          
+          {/* Helpful Hint (Matches the "clean" aesthetic) */}
+          <p className="mt-4 text-xs text-gray-400 italic">
+            * Changes made here will update the headers across the user-facing configuration steps immediately.
+          </p>
         </div>
       </div>
     </div>
